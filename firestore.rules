@@ -39,8 +39,9 @@ service cloud.firestore {
     }
     function isAdmin() {
       return isAuthenticated() && 
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-         (request.auth.token.email == "faycalassoul@gmail.com"));
+        (request.auth.token.email == "faycalassoul@gmail.com" ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
     function hasRequiredFields(fields) {
       return request.resource.data.keys().hasAll(fields);
@@ -56,55 +57,15 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create, update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      match /{allPaths=**} {
+        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
     match /settings/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
-
-    match /daily_reports/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && (request.resource.data.createdBy == request.auth.uid || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    match /chemicals/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || (isAuthenticated() && hasRequiredFields(['name']));
-      allow delete: if isAuthenticated();
-    }
-
-    match /equipment/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || (isAuthenticated() && hasRequiredFields(['name']));
-      allow delete: if isAuthenticated();
-    }
-
-    match /teachers/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || (isAuthenticated() && hasRequiredFields(['name']));
-      allow delete: if isAuthenticated();
-    }
-
-    match /safety_equipment/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && hasRequiredFields(['name', 'status']);
-      allow delete: if isAuthenticated();
-    }
-
-    match /incident_logs/{id} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && hasRequiredFields(['title', 'severity']);
-      allow delete: if isAuthenticated();
-    }
-
-    match /reports/{id} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && hasRequiredFields(['title', 'generatedAt']);
-      allow update, delete: if isAdmin();
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
   }
 }

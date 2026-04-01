@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { 
@@ -95,7 +95,7 @@ export default function Teachers() {
   };
 
   useEffect(() => {
-    const q = query(collection(db, 'teachers'));
+    const q = query(getUserCollection('teachers'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Teacher));
       setTeachers(items);
@@ -118,9 +118,9 @@ export default function Teachers() {
 
       if (editingTeacher) {
         const { id, ...data } = editingTeacher;
-        await updateDoc(doc(db, 'teachers', id), teacherData);
+        await updateDoc(doc(getUserCollection('teachers'), id), teacherData);
       } else {
-        await addDoc(collection(db, 'teachers'), {
+        await addDoc(getUserCollection('teachers'), {
           ...teacherData,
           createdAt: serverTimestamp()
         });
@@ -147,7 +147,7 @@ export default function Teachers() {
 
   const handleDeleteTeacher = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'teachers', id));
+      await deleteDoc(doc(getUserCollection('teachers'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `teachers/${id}`);
     }
@@ -222,7 +222,7 @@ export default function Teachers() {
             const grade = String(getValue('الدرجة') || '').trim();
             const effectiveDate = formatDate(getValue('تاريخ السريان'));
             
-            const docRef = doc(collection(db, 'teachers'));
+            const docRef = doc(getUserCollection('teachers'));
             batch.set(docRef, {
               functionalCode,
               lastName,
@@ -279,7 +279,7 @@ export default function Teachers() {
         const [name, subject, email, levelsStr] = line.split(',').map(s => s.trim());
         if (!name || !subject) continue;
 
-        const newDocRef = doc(collection(db, 'teachers'));
+        const newDocRef = doc(getUserCollection('teachers'));
         batch.set(newDocRef, {
           name,
           subject,

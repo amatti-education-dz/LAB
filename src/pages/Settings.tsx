@@ -28,7 +28,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, db, storage, handleFirestoreError, OperationType } from '../firebase';
+import { auth, db, storage, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
   updateProfile, 
   signOut, 
@@ -44,7 +44,7 @@ import {
   PhoneMultiFactorGenerator,
   ConfirmationResult
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as XLSX from 'xlsx';
 import { SCHOOL_DB } from '../data/schools';
@@ -114,11 +114,11 @@ export default function SettingsPage() {
         const batch = writeBatch(db);
         data.forEach((item) => {
           // Determine collection based on headers or a specific field
-          let collectionName = 'chemicals';
+          let collectionName: 'chemicals' | 'teachers' | 'equipment' = 'chemicals';
           if (item['المادة'] || item['Subject']) collectionName = 'teachers';
           else if (item['النوع'] || item['Type']) collectionName = 'equipment';
 
-          const docRef = doc(collection(db, collectionName));
+          const docRef = doc(getUserCollection(collectionName));
           
           if (collectionName === 'chemicals') {
             const name = item['الاسم'] || item['Name'] || 'مادة غير مسمى';

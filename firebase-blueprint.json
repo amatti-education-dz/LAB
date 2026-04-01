@@ -155,33 +155,53 @@
       "schema": "UserProfile",
       "description": "Collection of user profiles"
     },
-    "chemicals": {
+    "users/{userId}/chemicals": {
       "schema": "Chemical",
-      "description": "Collection of chemical reagents"
+      "description": "User-specific collection of chemical reagents"
     },
-    "equipment": {
+    "users/{userId}/equipment": {
       "schema": "Equipment",
-      "description": "Collection of lab equipment and glassware"
+      "description": "User-specific collection of lab equipment and glassware"
     },
-    "waste": {
+    "users/{userId}/waste": {
       "schema": "Waste",
-      "description": "Collection of chemical waste records"
+      "description": "User-specific collection of chemical waste records"
     },
-    "incidents": {
+    "users/{userId}/incidents": {
       "schema": "Incident",
-      "description": "Collection of safety incidents"
+      "description": "User-specific collection of safety incidents"
     },
-    "timetable": {
+    "users/{userId}/timetable": {
       "schema": "TimetableEntry",
-      "description": "Collection of scheduled lab sessions"
+      "description": "User-specific collection of scheduled lab sessions"
     },
-    "settings": {
+    "users/{userId}/settings": {
       "schema": "Settings",
       "description": "User-specific application settings"
     },
-    "daily_reports": {
+    "users/{userId}/daily_reports": {
       "schema": "DailyReport",
-      "description": "Collection of daily laboratory reports"
+      "description": "User-specific collection of daily laboratory reports"
+    },
+    "users/{userId}/teachers": {
+      "schema": "UserProfile",
+      "description": "User-specific collection of teachers/staff"
+    },
+    "users/{userId}/reports": {
+      "schema": "DailyReport",
+      "description": "User-specific collection of generated reports"
+    },
+    "users/{userId}/incident_logs": {
+      "schema": "Incident",
+      "description": "User-specific collection of safety incident logs"
+    },
+    "users/{userId}/safety_equipment": {
+      "schema": "Equipment",
+      "description": "User-specific collection of safety equipment"
+    },
+    "users/{userId}/maintenance_logs": {
+      "schema": "object",
+      "description": "User-specific collection of maintenance logs"
     }
   }
 }

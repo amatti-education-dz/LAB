@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Plus, Printer, ChevronLeft, Save, History, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '../firebase';
+import { doc, getDoc, setDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { SCHOOL_DB } from '../data/schools';
@@ -106,7 +106,7 @@ export default function DailyReport() {
     if (activeTab === 'history' && auth.currentUser) {
       setIsLoadingHistory(true);
       const q = query(
-        collection(db, 'daily_reports'),
+        getUserCollection('daily_reports'),
         where('createdBy', '==', auth.currentUser.uid),
         orderBy('date', 'desc')
       );
@@ -131,7 +131,7 @@ export default function DailyReport() {
     if (!auth.currentUser) return;
     
     try {
-      const reportsRef = collection(db, 'daily_reports');
+      const reportsRef = getUserCollection('daily_reports');
       const q = query(
         reportsRef, 
         where('date', '==', selectedDate), 
@@ -186,7 +186,7 @@ export default function DailyReport() {
     setIsSaving(true);
     try {
       const reportId = `${auth.currentUser.uid}_${date}`;
-      await setDoc(doc(db, 'daily_reports', reportId), {
+      await setDoc(doc(getUserCollection('daily_reports'), reportId), {
         date,
         dayName: getDayName(date),
         rows,

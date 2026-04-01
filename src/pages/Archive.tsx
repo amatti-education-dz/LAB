@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
   Archive, 
   Search, 
@@ -32,7 +32,7 @@ export default function ArchivePage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    const q = query(collection(db, 'reports'), orderBy('generatedAt', 'desc'));
+    const q = query(getUserCollection('reports'), orderBy('generatedAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 

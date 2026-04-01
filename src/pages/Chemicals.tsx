@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import * as XLSX from 'xlsx';
 import { 
   FlaskConical, 
@@ -104,7 +104,7 @@ export default function Chemicals() {
   });
 
   useEffect(() => {
-    const q = query(collection(db, 'chemicals'));
+    const q = query(getUserCollection('chemicals'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chemical));
       setChemicals(items);
@@ -123,12 +123,12 @@ export default function Chemicals() {
     try {
       if (editingChemical) {
         const { id, ...data } = editingChemical;
-        await updateDoc(doc(db, 'chemicals', id), {
+        await updateDoc(doc(getUserCollection('chemicals'), id), {
           ...newChemical,
           updatedAt: serverTimestamp()
         });
       } else {
-        await addDoc(collection(db, 'chemicals'), {
+        await addDoc(getUserCollection('chemicals'), {
           ...newChemical,
           createdAt: serverTimestamp()
         });
@@ -230,7 +230,7 @@ export default function Chemicals() {
         expiryDate = date.toISOString().split('T')[0];
       }
 
-      await updateDoc(doc(db, 'chemicals', selectedChemical.id), {
+      await updateDoc(doc(getUserCollection('chemicals'), selectedChemical.id), {
         nameEn: suggestedUpdate.nameEn,
         nameAr: suggestedUpdate.nameAr,
         formula: suggestedUpdate.formula,
@@ -273,7 +273,7 @@ export default function Chemicals() {
             expiryDate = date.toISOString().split('T')[0];
           }
 
-          await updateDoc(doc(db, 'chemicals', c.id), {
+          await updateDoc(doc(getUserCollection('chemicals'), c.id), {
             nameEn: info.nameEn || c.nameEn,
             nameAr: info.nameAr || c.nameAr,
             formula: info.formula || c.formula,
@@ -313,7 +313,7 @@ export default function Chemicals() {
 
   const handleDeleteChemical = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'chemicals', id));
+      await deleteDoc(doc(getUserCollection('chemicals'), id));
       if (selectedChemical?.id === id) {
         setSelectedChemical(chemicals.find(c => c.id !== id) || null);
       }
@@ -651,7 +651,7 @@ export default function Chemicals() {
           if (rawHazard === 'خطر' || rawHazard.toLowerCase() === 'danger') hazard = 'danger';
           else if (rawHazard === 'آمن' || rawHazard.toLowerCase() === 'safe') hazard = 'safe';
 
-          const docRef = doc(collection(db, 'chemicals'));
+          const docRef = doc(getUserCollection('chemicals'));
           batch.set(docRef, {
             nameEn: String(nameEn).trim(),
             nameAr: String(nameAr).trim(),

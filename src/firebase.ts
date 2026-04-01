@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, collection } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -9,6 +9,17 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+/**
+ * Gets a user-scoped collection reference.
+ * Path: users/{userId}/{collectionName}
+ */
+export const getUserCollection = (collectionName: string) => {
+  if (!auth.currentUser) {
+    throw new Error("User must be authenticated to access personal data");
+  }
+  return collection(db, 'users', auth.currentUser.uid, collectionName);
+};
 
 // Connection test as per critical guidelines
 async function testConnection() {

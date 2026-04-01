@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -32,10 +32,10 @@ export default function Reports() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const chemSnap = await getDocs(collection(db, 'chemicals'));
-        const equipSnap = await getDocs(collection(db, 'equipment'));
-        const teacherSnap = await getDocs(collection(db, 'teachers'));
-        const incidentSnap = await getDocs(collection(db, 'incident_logs'));
+        const chemSnap = await getDocs(getUserCollection('chemicals'));
+        const equipSnap = await getDocs(getUserCollection('equipment'));
+        const teacherSnap = await getDocs(getUserCollection('teachers'));
+        const incidentSnap = await getDocs(getUserCollection('incident_logs'));
 
         setStats({
           chemicals: chemSnap.size,
@@ -55,7 +55,7 @@ export default function Reports() {
   const handleGenerateReport = async () => {
     setIsGenerating(true);
     try {
-      await addDoc(collection(db, 'reports'), {
+      await addDoc(getUserCollection('reports'), {
         month: new Date().getMonth() + 1,
         year: new Date().getFullYear(),
         stats,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, orderBy, limit, getDocs, writeBatch } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, orderBy, limit, getDocs, writeBatch } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import * as XLSX from 'xlsx';
 import { 
   Beaker, 
@@ -71,7 +71,7 @@ export default function Equipment() {
   });
 
   useEffect(() => {
-    const q = query(collection(db, 'equipment'));
+    const q = query(getUserCollection('equipment'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment));
       setEquipment(items);
@@ -87,12 +87,12 @@ export default function Equipment() {
     try {
       if (editingEquipment) {
         const { id, ...data } = editingEquipment;
-        await updateDoc(doc(db, 'equipment', id), {
+        await updateDoc(doc(getUserCollection('equipment'), id), {
           ...newEquipment,
           updatedAt: serverTimestamp()
         });
       } else {
-        await addDoc(collection(db, 'equipment'), {
+        await addDoc(getUserCollection('equipment'), {
           ...newEquipment,
           createdAt: serverTimestamp()
         });
@@ -115,7 +115,7 @@ export default function Equipment() {
 
   const handleDeleteEquipment = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'equipment', id));
+      await deleteDoc(doc(getUserCollection('equipment'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `equipment/${id}`);
     }
@@ -137,7 +137,7 @@ export default function Equipment() {
 
         const batch = writeBatch(db);
         data.forEach((item) => {
-          const docRef = doc(collection(db, 'equipment'));
+          const docRef = doc(getUserCollection('equipment'));
           const type = (item['النوع'] || item['Type'] || 'other').toLowerCase();
           const status = (item['الحالة'] || item['Status'] || 'functional').toLowerCase();
           const name = item['الاسم'] || item['Name'] || 'جهاز غير مسمى';
@@ -170,8 +170,8 @@ export default function Equipment() {
   const handleUpdateStatus = async (id: string, currentStatus: string, newStatus: string) => {
     if (currentStatus === newStatus) return;
     try {
-      await updateDoc(doc(db, 'equipment', id), { status: newStatus });
-      await addDoc(collection(db, 'maintenance_logs'), {
+      await updateDoc(doc(getUserCollection('equipment'), id), { status: newStatus });
+      await addDoc(getUserCollection('maintenance_logs'), {
         equipmentId: id,
         previousStatus: currentStatus,
         newStatus: newStatus,
@@ -187,7 +187,7 @@ export default function Equipment() {
     setCurrentEquipName(name);
     try {
       const q = query(
-        collection(db, 'maintenance_logs'), 
+        getUserCollection('maintenance_logs'), 
         orderBy('date', 'desc'),
         limit(20)
       );

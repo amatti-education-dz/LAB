@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc, serverTimestamp, orderBy, limit, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, addDoc, serverTimestamp, orderBy, limit, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShieldAlert, 
@@ -76,7 +76,7 @@ export default function Safety() {
 
   useEffect(() => {
     // Fetch Safety Equipment
-    const qEquip = query(collection(db, 'safety_equipment'));
+    const qEquip = query(getUserCollection('safety_equipment'));
     const unsubEquip = onSnapshot(qEquip, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SafetyItem));
       setSafetyItems(items);
@@ -85,7 +85,7 @@ export default function Safety() {
     });
 
     // Fetch Incidents
-    const qIncidents = query(collection(db, 'incident_logs'), orderBy('date', 'desc'), limit(50));
+    const qIncidents = query(getUserCollection('incident_logs'), orderBy('date', 'desc'), limit(50));
     const unsubIncidents = onSnapshot(qIncidents, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -111,12 +111,12 @@ export default function Safety() {
     e.preventDefault();
     try {
       if (editingEquip) {
-        await updateDoc(doc(db, 'safety_equipment', editingEquip.id), {
+        await updateDoc(doc(getUserCollection('safety_equipment'), editingEquip.id), {
           ...newEquip,
           updatedAt: serverTimestamp()
         });
       } else {
-        await addDoc(collection(db, 'safety_equipment'), {
+        await addDoc(getUserCollection('safety_equipment'), {
           ...newEquip,
           lastCheck: new Date().toISOString().split('T')[0],
           createdAt: serverTimestamp()
@@ -133,7 +133,7 @@ export default function Safety() {
   const handleDeleteEquip = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذه المعدات؟')) return;
     try {
-      await deleteDoc(doc(db, 'safety_equipment', id));
+      await deleteDoc(doc(getUserCollection('safety_equipment'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `safety_equipment/${id}`);
     }
@@ -142,7 +142,7 @@ export default function Safety() {
   const handleLogIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'incident_logs'), {
+      await addDoc(getUserCollection('incident_logs'), {
         ...newIncident,
         date: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -157,7 +157,7 @@ export default function Safety() {
   const handleDeleteIncident = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
     try {
-      await deleteDoc(doc(db, 'incident_logs', id));
+      await deleteDoc(doc(getUserCollection('incident_logs'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `incident_logs/${id}`);
     }
@@ -165,7 +165,7 @@ export default function Safety() {
 
   const handleUpdateIncidentStatus = async (id: string, status: Incident['status']) => {
     try {
-      await updateDoc(doc(db, 'incident_logs', id), {
+      await updateDoc(doc(getUserCollection('incident_logs'), id), {
         status,
         updatedAt: serverTimestamp()
       });

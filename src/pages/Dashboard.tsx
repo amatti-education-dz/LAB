@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, query, where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
@@ -39,11 +39,11 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const unsubReports = onSnapshot(collection(db, 'reports'), (snap) => {
+    const unsubReports = onSnapshot(getUserCollection('reports'), (snap) => {
       setCounts(prev => ({ ...prev, reports: snap.size }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'reports'));
 
-    const unsubEquip = onSnapshot(collection(db, 'equipment'), (snap) => {
+    const unsubEquip = onSnapshot(getUserCollection('equipment'), (snap) => {
       const broken = snap.docs.filter(doc => {
         const status = doc.data().status;
         return status === 'broken' || status === 'maintenance';
@@ -51,16 +51,16 @@ export default function Dashboard() {
       setCounts(prev => ({ ...prev, equipment: snap.size, brokenEquip: broken }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'equipment'));
 
-    const unsubChem = onSnapshot(collection(db, 'chemicals'), (snap) => {
+    const unsubChem = onSnapshot(getUserCollection('chemicals'), (snap) => {
       const low = snap.docs.filter(doc => (doc.data().quantity || 0) < 10).length;
       setCounts(prev => ({ ...prev, chemicals: snap.size, lowStock: low }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'chemicals'));
 
-    const unsubTeachers = onSnapshot(collection(db, 'teachers'), (snap) => {
+    const unsubTeachers = onSnapshot(getUserCollection('teachers'), (snap) => {
       setCounts(prev => ({ ...prev, teachers: snap.size }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'teachers'));
 
-    const unsubIncidents = onSnapshot(collection(db, 'incident_logs'), (snap) => {
+    const unsubIncidents = onSnapshot(getUserCollection('incident_logs'), (snap) => {
       setCounts(prev => ({ ...prev, incidents: snap.size }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'incident_logs'));
 
@@ -106,7 +106,7 @@ export default function Dashboard() {
           if (item['المادة'] || item['Subject']) collectionName = 'teachers';
           else if (item['النوع'] || item['Type']) collectionName = 'equipment';
 
-          const docRef = doc(collection(db, collectionName));
+          const docRef = doc(getUserCollection(collectionName));
           
           if (collectionName === 'chemicals') {
             const name = item['الاسم'] || item['Name'] || 'مادة غير مسمى';
