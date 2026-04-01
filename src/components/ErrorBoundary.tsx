@@ -34,7 +34,11 @@ class ErrorBoundary extends React.Component<Props, State> {
       try {
         const parsedError = JSON.parse(this.state.error?.message || '');
         if (parsedError.error && parsedError.operationType) {
-          errorMessage = `خطأ في قاعدة البيانات (${parsedError.operationType}): ${parsedError.error}`;
+          if (parsedError.isOffline) {
+            errorMessage = "فشل الاتصال بقاعدة البيانات. يرجى التأكد من إنشاء قاعدة بيانات Firestore في Firebase Console وتفعيلها في وضع الإنتاج.";
+          } else {
+            errorMessage = `خطأ في قاعدة البيانات (${parsedError.operationType}): ${parsedError.error}`;
+          }
         }
       } catch (e) {
         if (this.state.error?.message) {

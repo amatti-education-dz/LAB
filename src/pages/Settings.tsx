@@ -380,6 +380,24 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const checkConnection = async () => {
+    setIsCheckingConnection(true);
+    setConnectionStatus('idle');
+    try {
+      await getDoc(doc(db, '_connection_test_', 'ping'));
+      setConnectionStatus('success');
+      setTimeout(() => setConnectionStatus('idle'), 5000);
+    } catch (error: any) {
+      console.error('Connection test failed:', error);
+      setConnectionStatus('error');
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!auth.currentUser) return;
     setIsSaving(true);
@@ -451,11 +469,10 @@ export default function SettingsPage() {
       console.error(`Error linking ${providerName}:`, error);
       if (error.code === 'auth/credential-already-in-use') {
         setLinkingError('هذا الحساب مرتبط بالفعل بمستخدم آخر.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, no need to show a scary error
-        setLinkingError(null);
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        setLinkingError(null);
+      } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        setLinkingError('تم إغلاق نافذة تسجيل الدخول قبل إتمام العملية.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setLinkingError('تسجيل الدخول عبر فيسبوك غير مفعل في إعدادات Firebase.');
       } else {
         setLinkingError('حدث خطأ أثناء ربط الحساب. يرجى المحاولة مرة أخرى.');
       }
@@ -1242,6 +1259,64 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <Database className="absolute -bottom-12 -left-12 text-white/5 w-64 h-64 rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+                  </div>
+                </section>
+
+                <section className="pt-12 border-t border-[#c4c8bd]/20">
+                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
+                    <Database className="text-[#5c6146]" />
+                    حالة الاتصال بقاعدة البيانات
+                  </h3>
+                  <div className="bg-[#fcf9f3] p-8 rounded-[32px] border-2 border-dashed border-[#c4c8bd]/30">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="text-right">
+                        <h4 className="text-lg font-black text-[#2b3d22] mb-1">اختبار الاتصال بـ Firestore</h4>
+                        <p className="text-sm text-[#5c6146] opacity-80">تأكد من أن قاعدة البيانات مفعلة وتعمل بشكل صحيح في Firebase Console.</p>
+                      </div>
+                      <button
+                        onClick={checkConnection}
+                        disabled={isCheckingConnection}
+                        className={cn(
+                          "px-8 py-4 rounded-2xl font-black transition-all flex items-center gap-3 shadow-lg active:scale-95",
+                          connectionStatus === 'success' ? "bg-green-600 text-white" :
+                          connectionStatus === 'error' ? "bg-red-600 text-white" :
+                          "bg-[#2b3d22] text-white hover:opacity-90"
+                        )}
+                      >
+                        {isCheckingConnection ? (
+                          <>
+                            <Loader2 size={20} className="animate-spin" />
+                            جاري الاختبار...
+                          </>
+                        ) : connectionStatus === 'success' ? (
+                          <>
+                            <CheckCircle2 size={20} />
+                            متصل بنجاح
+                          </>
+                        ) : connectionStatus === 'error' ? (
+                          <>
+                            <AlertCircle size={20} />
+                            فشل الاتصال
+                          </>
+                        ) : (
+                          <>
+                            <Globe size={20} />
+                            اختبار الآن
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {connectionStatus === 'error' && (
+                      <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-sm font-bold">
+                        <p className="mb-2">يبدو أن قاعدة البيانات غير مفعلة. يرجى اتباع الخطوات التالية:</p>
+                        <ol className="list-decimal list-inside space-y-1">
+                          <li>افتح <a href={`https://console.firebase.google.com/project/${auth.app.options.projectId}/firestore`} target="_blank" rel="noopener noreferrer" className="underline">Firebase Console</a></li>
+                          <li>اضغط على "Create database"</li>
+                          <li>اختر "Production mode"</li>
+                          <li>قم بنشر القواعد (Rules) الموجودة في ملف firestore.rules</li>
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 </section>
 

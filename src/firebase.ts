@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -9,6 +9,19 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// Connection test as per critical guidelines
+async function testConnection() {
+  try {
+    // Attempt to fetch a non-existent document from server to test connectivity
+    await getDocFromServer(doc(db, '_connection_test_', 'ping'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("CRITICAL: Firestore configuration error or database not initialized. Please check your Firebase Console.");
+    }
+  }
+}
+testConnection();
 
 export enum OperationType {
   CREATE = 'create',
@@ -39,6 +52,20 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  if (errorMessage.includes('the client is offline')) {
+    const offlineMsg = "فشل الاتصال بقاعدة البيانات. يرجى التأكد من إنشاء قاعدة بيانات Firestore في Firebase Console وتفعيلها في وضع الإنتاج.";
+    console.error(offlineMsg);
+    // We can throw a more descriptive error for the UI to catch
+    throw new Error(JSON.stringify({
+      error: offlineMsg,
+      isOffline: true,
+      operationType,
+      path
+    }));
+  }
+
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
