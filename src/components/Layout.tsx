@@ -15,7 +15,13 @@ import {
   X,
   FileText,
   Archive,
-  Users
+  Users,
+  Database,
+  Trash2,
+  Map,
+  Monitor,
+  Package,
+  BookOpen
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
@@ -26,6 +32,13 @@ const navItems = [
   { name: 'لوحة القيادة', path: '/', icon: LayoutDashboard },
   { name: 'المخزن الكيميائي', path: '/chemicals', icon: FlaskConical },
   { name: 'الزجاجيات والعتاد', path: '/equipment', icon: Beaker },
+  { name: 'جرد الزجاجيات والكسور', path: '/glassware-breakage', icon: Beaker },
+  { name: 'التحضير الذكي للنماذج', path: '/smart-forms', icon: BookOpen },
+  { name: 'إدارة النفايات الكيميائية', path: '/chemical-waste', icon: Trash2 },
+  { name: 'إدارة الخريطة التربوية', path: '/educational-map', icon: Map },
+  { name: 'جرد التجهيزات التكنولوجية', path: '/tech-inventory', icon: Monitor },
+  { name: 'جرد المستهلكات و SDS', path: '/consumables-sds', icon: Package },
+  { name: 'مركز النسخ الاحتياطي', path: '/backup', icon: Database },
   { name: 'السلامة والأمان', path: '/safety', icon: ShieldAlert },
   { name: 'التقارير', path: '/reports', icon: FileText },
   { name: 'الأرشيف', path: '/archive', icon: Archive },

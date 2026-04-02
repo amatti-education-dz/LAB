@@ -20,6 +20,13 @@ import Settings from './pages/Settings';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import DataDeletion from './pages/DataDeletion';
 import TermsOfService from './pages/TermsOfService';
+import TechInventory from './pages/TechInventory';
+import GlasswareBreakage from './pages/GlasswareBreakage';
+import SmartForms from './pages/SmartForms';
+import ChemicalWaste from './pages/ChemicalWaste';
+import EducationalMap from './pages/EducationalMap';
+import ConsumablesSDS from './pages/ConsumablesSDS';
+import BackupCenter from './pages/BackupCenter';
 import Layout from './components/Layout';
 import FirebaseSetup from './components/FirebaseSetup';
 
@@ -61,6 +68,13 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="chemicals" element={<Chemicals />} />
           <Route path="equipment" element={<Equipment />} />
+          <Route path="tech-inventory" element={<TechInventory />} />
+          <Route path="glassware-breakage" element={<GlasswareBreakage />} />
+          <Route path="smart-forms" element={<SmartForms />} />
+          <Route path="chemical-waste" element={<ChemicalWaste />} />
+          <Route path="educational-map" element={<EducationalMap />} />
+          <Route path="consumables-sds" element={<ConsumablesSDS />} />
+          <Route path="backup" element={<BackupCenter />} />
           <Route path="safety" element={<Safety />} />
           <Route path="reports" element={<Reports />} />
           <Route path="archive" element={<Archive />} />

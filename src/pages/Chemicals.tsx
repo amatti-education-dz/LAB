@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import * as XLSX from 'xlsx';
+import { useSearchParams } from 'react-router-dom';
 import { 
   FlaskConical, 
   Plus, 
@@ -62,10 +63,11 @@ const GHS_ICONS: Record<string, string> = {
 };
 
 export default function Chemicals() {
+  const [searchParams] = useSearchParams();
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterLowStock, setFilterLowStock] = useState(false);
+  const [filterLowStock, setFilterLowStock] = useState(searchParams.get('filter') === 'low');
   const [selectedChemical, setSelectedChemical] = useState<Chemical | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingChemical, setEditingChemical] = useState<Chemical | null>(null);

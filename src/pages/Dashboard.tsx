@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { onSnapshot, query, where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { onSnapshot, query, where, doc, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { GoogleGenAI, Type } from "@google/genai";
 import { 
   FileText, 
   Package, 
@@ -19,7 +20,14 @@ import {
   LayoutDashboard,
   Sparkles,
   MapPin,
-  FileUp
+  FileUp,
+  Database,
+  Trash2,
+  Map,
+  Monitor,
+  Beaker,
+  RefreshCw,
+  Cpu
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -28,6 +36,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [counts, setCounts] = useState({
     reports: 0,
     equipment: 0,
@@ -37,6 +46,13 @@ export default function Dashboard() {
     lowStock: 0,
     brokenEquip: 0
   });
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   useEffect(() => {
     const unsubReports = onSnapshot(getUserCollection('reports'), (snap) => {
@@ -99,75 +115,84 @@ export default function Dashboard() {
           return String(val).trim();
         };
 
-        const batch = writeBatch(db);
-        data.forEach((item) => {
-          // Determine collection based on headers or a specific field
-          let collectionName = 'chemicals';
-          if (item['المادة'] || item['Subject']) collectionName = 'teachers';
-          else if (item['النوع'] || item['Type'] || item['تعيين الجهاز']) collectionName = 'equipment';
+        // Firestore batch limit is 500 operations
+        const CHUNK_SIZE = 450;
+        const chunks = [];
+        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+          chunks.push(data.slice(i, i + CHUNK_SIZE));
+        }
 
-          const docRef = doc(getUserCollection(collectionName));
-          
-          if (collectionName === 'chemicals') {
-            const name = item['الاسم'] || item['Name'] || 'مادة غير مسمى';
-            const quantity = Number(item['الكمية'] || item['Quantity']);
-            batch.set(docRef, {
-              name: String(name).trim() || 'مادة غير مسمى',
-              formula: item['الصيغة'] || item['Formula'] || '',
-              cas: item['CAS'] || '',
-              purity: item['النقاء'] || item['Purity'] || '',
-              storageTemp: item['درجة التخزين'] || item['Storage'] || '',
-              expiryDate: formatDate(item['تاريخ الانتهاء'] || item['Expiry']),
-              quantity: isNaN(quantity) ? 0 : quantity,
-              unit: item['الوحدة'] || item['Unit'] || 'ml',
-              hazardClass: (item['الخطورة'] || item['Hazard'] || 'safe').toLowerCase() === 'danger' ? 'danger' : 'safe',
-              location: item['الموقع'] || item['Location'] || '',
-              createdAt: serverTimestamp()
-            });
-          } else if (collectionName === 'teachers') {
-            const name = item['الاسم'] || item['Name'] || 'أستاذ غير مسمى';
-            const subject = item['المادة'] || item['Subject'] || 'مادة غير محددة';
-            batch.set(docRef, {
-              name: String(name).trim() || 'أستاذ غير مسمى',
-              subject: String(subject).trim() || 'مادة غير محددة',
-              rank: item['الرتبة'] || item['Rank'] || '',
-              functionalCode: item['الرمز الوظيفي'] || item['Code'] || '',
-              birthDate: formatDate(item['تاريخ الازدياد'] || item['BirthDate']),
-              grade: item['الدرجة'] || item['Grade'] || '',
-              effectiveDate: formatDate(item['تاريخ السريان'] || item['EffectiveDate']),
-              email: item['البريد'] || item['Email'] || '',
-              levels: item['الأطوار'] || item['Levels'] ? String(item['الأطوار'] || item['Levels']).split(';').map(s => s.trim()) : [],
-              createdAt: serverTimestamp()
-            });
-          } else if (collectionName === 'equipment') {
-            const type = (item['النوع'] || item['Type'] || 'other').toLowerCase();
-            const status = (item['الحالة'] || item['Status'] || 'functional').toLowerCase();
-            const name = item['تعيين الجهاز'] || item['الاسم'] || item['Name'] || 'جهاز غير مسمى';
-            const quantity = Number(item['الكمية'] || item['الكمية الإجمالية'] || item['Total'] || 0);
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          chunk.forEach((item) => {
+            // Determine collection based on headers or a specific field
+            let collectionName = 'chemicals';
+            if (item['المادة'] || item['Subject']) collectionName = 'teachers';
+            else if (item['النوع'] || item['Type'] || item['تعيين الجهاز']) collectionName = 'equipment';
+
+            const docRef = doc(getUserCollection(collectionName));
             
-            batch.set(docRef, {
-              name: String(name).trim() || 'جهاز غير مسمى',
-              type: type === 'زجاجيات' || type === 'glassware' ? 'glassware' : type === 'أجهزة' || type === 'tech' ? 'tech' : 'other',
-              serialNumber: item['رقم الجرد'] || item['الرقم التسلسلي'] || item['Serial'] || '',
-              status: status === 'سليم' || status === 'functional' ? 'functional' : status === 'صيانة' || status === 'maintenance' ? 'maintenance' : 'broken',
-              totalQuantity: isNaN(quantity) ? 0 : quantity,
-              availableQuantity: isNaN(quantity) ? 0 : quantity,
-              brokenQuantity: 0,
-              supplier: item['الممون'] || '',
-              location: item['الموقع'] || '',
-              notes: item['ملاحظات'] || '',
-              foundationalInventory: item['الجرد التأسيسي'] || '',
-              decennialReview: item['المراجعة العشرية'] || '',
-              createdAt: serverTimestamp()
-            });
-          }
-        });
+            if (collectionName === 'chemicals') {
+              const name = item['الاسم'] || item['Name'] || 'مادة غير مسمى';
+              const quantity = Number(item['الكمية'] || item['Quantity']);
+              batch.set(docRef, {
+                name: String(name).trim() || 'مادة غير مسمى',
+                formula: item['الصيغة'] || item['Formula'] || '',
+                cas: item['CAS'] || '',
+                purity: item['النقاء'] || item['Purity'] || '',
+                storageTemp: item['درجة التخزين'] || item['Storage'] || '',
+                expiryDate: formatDate(item['تاريخ الانتهاء'] || item['Expiry']),
+                quantity: isNaN(quantity) ? 0 : quantity,
+                unit: item['الوحدة'] || item['Unit'] || 'ml',
+                hazardClass: (item['الخطورة'] || item['Hazard'] || 'safe').toLowerCase() === 'danger' ? 'danger' : 'safe',
+                location: item['الموقع'] || item['Location'] || '',
+                createdAt: serverTimestamp()
+              });
+            } else if (collectionName === 'teachers') {
+              const name = item['الاسم'] || item['Name'] || 'أستاذ غير مسمى';
+              const subject = item['المادة'] || item['Subject'] || 'مادة غير محددة';
+              batch.set(docRef, {
+                name: String(name).trim() || 'أستاذ غير مسمى',
+                subject: String(subject).trim() || 'مادة غير محددة',
+                rank: item['الرتبة'] || item['Rank'] || '',
+                functionalCode: item['الرمز الوظيفي'] || item['Code'] || '',
+                birthDate: formatDate(item['تاريخ الازدياد'] || item['BirthDate']),
+                grade: item['الدرجة'] || item['Grade'] || '',
+                effectiveDate: formatDate(item['تاريخ السريان'] || item['EffectiveDate']),
+                email: item['البريد'] || item['Email'] || '',
+                levels: item['الأطوار'] || item['Levels'] ? String(item['الأطوار'] || item['Levels']).split(';').map(s => s.trim()) : [],
+                createdAt: serverTimestamp()
+              });
+            } else if (collectionName === 'equipment') {
+              const type = (item['النوع'] || item['Type'] || 'other').toLowerCase();
+              const status = (item['الحالة'] || item['Status'] || 'functional').toLowerCase();
+              const name = item['تعيين الجهاز'] || item['الاسم'] || item['Name'] || 'جهاز غير مسمى';
+              const quantity = Number(item['الكمية'] || item['الكمية الإجمالية'] || item['Total'] || 0);
+              
+              batch.set(docRef, {
+                name: String(name).trim() || 'جهاز غير مسمى',
+                type: type === 'زجاجيات' || type === 'glassware' ? 'glassware' : type === 'أجهزة' || type === 'tech' ? 'tech' : 'other',
+                serialNumber: item['رقم الجرد'] || item['الرقم التسلسلي'] || item['Serial'] || '',
+                status: status === 'سليم' || status === 'functional' ? 'functional' : status === 'صيانة' || status === 'maintenance' ? 'maintenance' : 'broken',
+                totalQuantity: isNaN(quantity) ? 0 : quantity,
+                availableQuantity: isNaN(quantity) ? 0 : quantity,
+                brokenQuantity: 0,
+                supplier: item['الممون'] || '',
+                location: item['الموقع'] || '',
+                notes: item['ملاحظات'] || '',
+                foundationalInventory: item['الجرد التأسيسي'] || '',
+                decennialReview: item['المراجعة العشرية'] || '',
+                createdAt: serverTimestamp()
+              });
+            }
+          });
+          await batch.commit();
+        }
 
-        await batch.commit();
-        alert(`تم استيراد ${data.length} سجل بنجاح!`);
+        setNotification({ message: `تم استيراد ${data.length} سجل بنجاح!`, type: 'success' });
       } catch (error) {
         console.error('Error importing XLS:', error);
-        alert('حدث خطأ أثناء استيراد الملف. يرجى التأكد من صيغة الملف.');
+        setNotification({ message: 'حدث خطأ أثناء استيراد الملف. يرجى التأكد من صيغة الملف.', type: 'error' });
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -177,16 +202,126 @@ export default function Dashboard() {
   };
 
   const stats = [
-    { label: 'إجمالي التقارير', value: counts.reports.toString(), trend: '+12%', icon: FileText, color: 'bg-primary/10' },
-    { label: 'التجهيزات النشطة', value: counts.equipment.toString(), trend: 'عنصر', icon: Package, color: 'bg-primary/5' },
-    { label: 'كواشف منخفضة', value: counts.lowStock.toString(), trend: 'تحتاج طلب', icon: AlertTriangle, color: 'bg-error/10' },
-    { label: 'الأساتذة', value: counts.teachers.toString(), trend: 'نشط', icon: Users, color: 'bg-surface-container-low' },
+    { label: 'إجمالي التقارير', value: counts.reports.toString(), trend: '+12%', icon: FileText, color: 'bg-[#4a7c59]/10', path: '/reports' },
+    { label: 'التجهيزات النشطة', value: counts.equipment.toString(), trend: 'عنصر', icon: Package, color: 'bg-[#8bc34a]/10', path: '/equipment' },
+    { label: 'كواشف منخفضة', value: counts.lowStock.toString(), trend: 'تحتاج طلب', icon: AlertTriangle, color: 'bg-error/10', path: '/chemicals', filter: 'low' },
+    { label: 'فريق العمل (الأساتذة)', value: counts.teachers.toString(), trend: 'نشط', icon: Users, color: 'bg-[#d4a574]/10', path: '/teachers' },
   ];
+
+  const [isSmartUpdating, setIsSmartUpdating] = useState(false);
+
+  const handleSmartUpdate = async () => {
+    setIsSmartUpdating(true);
+    try {
+      const snap = await getDocs(getUserCollection('equipment'));
+      const items = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      
+      if (items.length === 0) {
+        setNotification({ message: 'لا توجد تجهيزات لتحديثها.', type: 'error' });
+        return;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+      if (!apiKey) {
+        throw new Error('Gemini API key is missing.');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Analyze these laboratory equipment items and provide: 
+        1. A better Arabic name.
+        2. A concise Arabic description.
+        3. An English keyword for image search (Unsplash/Picsum).
+        Items: ${JSON.stringify(items.map(i => ({ id: i.id, name: i.name })))}`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                smartNameAr: { type: Type.STRING },
+                smartDescriptionAr: { type: Type.STRING },
+                imageKeyword: { type: Type.STRING }
+              },
+              required: ["id", "smartNameAr", "smartDescriptionAr", "imageKeyword"]
+            }
+          }
+        }
+      });
+
+      const enrichedData = JSON.parse(response.text);
+      
+      // Batch update in chunks of 450
+      const CHUNK_SIZE = 450;
+      for (let i = 0; i < enrichedData.length; i += CHUNK_SIZE) {
+        const chunk = enrichedData.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((update: any) => {
+          const docRef = doc(getUserCollection('equipment'), update.id);
+          batch.update(docRef, {
+            smartNameAr: update.smartNameAr,
+            smartDescriptionAr: update.smartDescriptionAr,
+            imageKeyword: update.imageKeyword,
+            lastSmartUpdate: serverTimestamp()
+          });
+        });
+        await batch.commit();
+      }
+
+      setNotification({ message: 'تم التحديث الذكي للمخزون بنجاح!', type: 'success' });
+    } catch (error) {
+      console.error('Error in smart update:', error);
+      setNotification({ message: 'حدث خطأ أثناء التحديث الذكي. يرجى المحاولة لاحقاً.', type: 'error' });
+    } finally {
+      setIsSmartUpdating(false);
+    }
+  };
+
+  const handleExportInventory = async () => {
+    try {
+      const collections = ['chemicals', 'equipment', 'teachers'];
+      const wb = XLSX.utils.book_new();
+
+      for (const coll of collections) {
+        const snap = await new Promise<any>((resolve) => {
+          const unsub = onSnapshot(getUserCollection(coll as any), (s) => {
+            unsub();
+            resolve(s);
+          });
+        });
+
+        const data = snap.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, coll.charAt(0).toUpperCase() + coll.slice(1));
+      }
+
+      XLSX.writeFile(wb, `Lab_Inventory_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+      setNotification({ message: 'تم تصدير البيانات بنجاح!', type: 'success' });
+    } catch (error) {
+      console.error('Error exporting inventory:', error);
+      setNotification({ message: 'حدث خطأ أثناء تصدير البيانات.', type: 'error' });
+    }
+  };
 
   const modules = [
     { title: 'التقارير اليومية', desc: 'تسجيل ومتابعة النشاطات اليومية للمخبر والحصص التطبيقية.', count: counts.reports.toString(), icon: FileText, color: 'bg-primary/10', path: '/daily-report' },
     { title: 'جرد التجهيزات', desc: 'قاعدة بيانات شاملة للأجهزة والمعدات الزجاجية والميكانيكية.', count: counts.equipment.toString(), icon: Package, color: 'bg-primary/5', path: '/equipment' },
     { title: 'الكواشف الكيميائية', desc: 'تتبع المحاليل، تواريخ الصلاحية، ودرجات الخطورة Safety Data.', count: counts.chemicals.toString(), icon: FlaskConical, color: 'bg-surface-container-low', path: '/chemicals' },
+    { title: 'جرد التجهيزات التكنولوجية', desc: 'واجهة عرض للأجهزة الحساسة (المجاهر الرقمية، أجهزة الطيف) تظهر حالة المعايرة والمواصفات التقنية لكل جهاز.', count: 'جديد', icon: Monitor, color: 'bg-primary/10', path: '/tech-inventory' },
+    { title: 'جرد الزجاجيات والكسور', desc: 'سجل دقيق لمتابعة الأدوات الزجاجية (كؤوس، دوارق) وحساب القيمة المالية للفواقد والكسور.', count: 'جديد', icon: Beaker, color: 'bg-primary/5', path: '/glassware-breakage' },
+    { title: 'التحضير الذكي للنماذج', desc: 'مكتبة رقمية للقوالب الرسمية تتيح رقمنة المستندات الورقية وتتبع حالة التوقيعات والاعتمادات.', count: 'جديد', icon: BookOpen, color: 'bg-surface-container-low', path: '/smart-forms' },
+    { title: 'إدارة النفايات الكيميائية', desc: 'نظام مخصص للتعامل مع المواد المنتهية الصلاحية والتالفة وفق بروتوكولات التحييد والأكسدة المعتمدة.', count: 'جديد', icon: Trash2, color: 'bg-surface-container-high', path: '/chemical-waste' },
+    { title: 'إدارة الخريطة التربوية', desc: 'أداة بصرية لتوزيع الأفواج التربوية والمستويات الدراسية على المخابر المتاحة وتعيين الأساتذة المشرفين.', count: 'جديد', icon: Map, color: 'bg-primary/10', path: '/educational-map' },
+    { title: 'جرد المستهلكات و SDS', desc: 'سجل متقدم يربط كل مادة مستهلكة بملف بيانات السلامة الخاص بها، مع تنبيهات ذكية لنقص المخزون.', count: 'جديد', icon: Package, color: 'bg-primary/5', path: '/consumables-sds' },
+    { title: 'مركز النسخ الاحتياطي', desc: 'واجهة تقنية متطورة لمراقبة حجم البيانات وإدارة النسخ الاحتياطي بصيغة JSON لضمان سلامة السجلات.', count: 'جديد', icon: Database, color: 'bg-surface-container-low', path: '/backup' },
     { title: 'الصيانة والإصلاح', desc: 'سجلات صيانة الأجهزة المعطلة وطلبات تصليح الوسائل التعليمية.', count: counts.brokenEquip.toString(), icon: Wrench, color: 'bg-surface-container-high', path: '/equipment' },
     { title: 'فريق الأساتذة', desc: 'قائمة أساتذة العلوم والفيزياء المستفيدين من خدمات المخبر.', count: counts.teachers.toString(), icon: Users, color: 'bg-primary/10', path: '/teachers' },
     { title: 'المتابعة البيداغوجية', desc: 'مواءمة الوسائل مع المناهج الدراسية والدروس التطبيقية.', count: '12', icon: BookOpen, color: 'bg-primary/5', path: '/reports' },
@@ -196,6 +331,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-16 max-w-7xl mx-auto px-6 pb-24 rtl font-sans" dir="rtl">
+      {/* Notifications */}
+      {notification && (
+        <div className={cn(
+          "fixed top-8 left-1/2 -translate-x-1/2 z-[100] px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300",
+          notification.type === 'success' ? "bg-primary text-on-primary" : "bg-error text-white"
+        )}>
+          {notification.type === 'success' ? <Sparkles size={20} /> : <AlertTriangle size={20} />}
+          <span className="font-black">{notification.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="relative flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-4">
         <div className="text-right space-y-3 relative z-10">
@@ -228,15 +374,19 @@ export default function Dashboard() {
             استيراد XLS
           </button>
 
-          <div className="relative z-10 flex items-center gap-4 bg-white px-8 py-4 rounded-[32px] border border-outline/10 shadow-2xl group transition-all hover:shadow-primary/10">
+          <button 
+            onClick={handleSmartUpdate}
+            disabled={isSmartUpdating}
+            className="relative z-10 flex items-center gap-4 bg-white px-8 py-4 rounded-[32px] border border-outline/10 shadow-2xl group transition-all hover:shadow-primary/10 hover:bg-primary/5 active:scale-95 disabled:opacity-50"
+          >
             <div className="p-3 bg-primary/10 rounded-2xl text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
-              <Calendar size={22} />
+              {isSmartUpdating ? <RefreshCw size={22} className="animate-spin" /> : <Sparkles size={22} />}
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-on-surface/30 uppercase tracking-widest">التاريخ الحالي</span>
-              <span className="text-base font-black text-primary">{new Date().toLocaleDateString('ar-DZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] font-black text-on-surface/30 uppercase tracking-widest">تحسين البيانات</span>
+              <span className="text-base font-black text-primary leading-tight">تحديث ذكي للكل</span>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Decorative elements */}
@@ -295,6 +445,36 @@ export default function Dashboard() {
         </section>
       )}
 
+      {/* Quick Access to Specialized Units */}
+      <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        {[
+          { label: 'الأجهزة التقنية', path: '/tech-inventory', icon: Monitor, color: 'bg-[#4a7c59]/5 text-[#4a7c59]' },
+          { label: 'جرد الزجاجيات', path: '/glassware-breakage', icon: Beaker, color: 'bg-[#4a7c59]/5 text-[#4a7c59]' },
+          { label: 'النماذج الذكية', path: '/smart-forms', icon: FileText, color: 'bg-[#4a7c59]/5 text-[#4a7c59]' },
+          { label: 'النفايات الكيميائية', path: '/chemical-waste', icon: Trash2, color: 'bg-error/5 text-error' },
+          { label: 'الخريطة التربوية', path: '/educational-map', icon: Map, color: 'bg-[#4a7c59]/5 text-[#4a7c59]' },
+          { label: 'المستهلكات & SDS', path: '/consumables-sds', icon: Package, color: 'bg-[#4a7c59]/5 text-[#4a7c59]' },
+          { label: 'مركز النسخ الاحتياطي', path: '/backup', icon: Database, color: 'bg-[#d4a574]/5 text-[#d4a574]' },
+        ].map((unit, i) => (
+          <motion.div
+            key={unit.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            onClick={() => navigate(unit.path)}
+            className={cn(
+              "flex flex-col items-center justify-center p-6 rounded-[32px] border border-outline/5 shadow-sm hover:shadow-md transition-all group text-center gap-3 cursor-pointer",
+              unit.color
+            )}
+          >
+            <div className="p-3 rounded-2xl bg-white shadow-sm group-hover:scale-110 transition-transform">
+              <unit.icon size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tight leading-tight">{unit.label}</span>
+          </motion.div>
+        ))}
+      </section>
+
       {/* Stats Strip */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {stats.map((stat, i) => {
@@ -305,8 +485,9 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
+              onClick={() => navigate(stat.path + (stat.filter ? `?filter=${stat.filter}` : ''))}
               className={cn(
-                "p-8 rounded-[40px] border border-outline/5 transition-all group relative overflow-hidden shadow-xl",
+                "p-8 rounded-[40px] border border-outline/5 transition-all group relative overflow-hidden shadow-xl cursor-pointer hover:-translate-y-2 hover:shadow-2xl",
                 stat.color
               )}
             >
@@ -396,8 +577,25 @@ export default function Dashboard() {
           <h3 className="text-5xl font-black text-primary tracking-tight font-serif leading-tight">نظرة عامة على النشاط <br/>البيداغوجي للمؤسسة</h3>
           <p className="text-on-surface/60 max-w-xl leading-relaxed font-medium text-xl">يتم تحديث الإحصائيات تلقائياً بناءً على التقارير المدخلة من قبل المخبريين والأساتذة. يمكنك تصدير التقارير الشهرية والسنوية بنقرة واحدة لتحليل الأداء العام للمخبر.</p>
           <div className="flex flex-wrap gap-6 pt-8">
-            <button className="bg-primary text-on-primary px-12 py-5 rounded-full font-black shadow-2xl shadow-primary/30 hover:bg-primary-container hover:shadow-primary/40 transition-all active:scale-95 text-lg">تصدير التقرير السنوي</button>
-            <button className="bg-white text-primary border-2 border-primary/20 px-12 py-5 rounded-full font-black hover:bg-primary/5 hover:border-primary transition-all active:scale-95 text-lg">التحليلات المتقدمة</button>
+            <button 
+              onClick={handleExportInventory}
+              className="bg-primary text-on-primary px-12 py-5 rounded-full font-black shadow-2xl shadow-primary/30 hover:bg-primary-container hover:shadow-primary/40 transition-all active:scale-95 text-lg flex items-center gap-3"
+            >
+              <Database size={24} />
+              تصدير الجرد الشامل (XLS)
+            </button>
+            <button 
+              onClick={handleSmartUpdate}
+              disabled={isSmartUpdating}
+              className="bg-white text-primary border-2 border-primary/20 px-12 py-5 rounded-full font-black hover:bg-primary/5 hover:border-primary transition-all active:scale-95 text-lg flex items-center gap-3"
+            >
+              {isSmartUpdating ? (
+                <RefreshCw size={24} className="animate-spin" />
+              ) : (
+                <Sparkles size={24} />
+              )}
+              تحديث ذكي للكل
+            </button>
           </div>
         </div>
         

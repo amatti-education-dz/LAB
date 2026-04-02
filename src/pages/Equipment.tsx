@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, orderBy, limit, getDocs, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import * as XLSX from 'xlsx';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Beaker, 
   Plus, 
@@ -21,10 +22,20 @@ import {
   Package,
   ArrowLeft,
   Sparkles,
-  MoreHorizontal
+  MoreHorizontal,
+  Map,
+  FileText,
+  RefreshCw,
+  FileDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface Equipment {
   id: string;
@@ -54,13 +65,44 @@ interface MaintenanceLog {
 }
 
 export default function Equipment() {
+  const [searchParams] = useSearchParams();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('filter') || 'all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [isSmartUpdating, setIsSmartUpdating] = useState(false);
+  const [isSmartUpdateConfirmOpen, setIsSmartUpdateConfirmOpen] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [sortField, setSortField] = useState<keyof Equipment | 'none'>('none');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    const targetId = searchParams.get('id');
+    if (targetId && equipment.length > 0) {
+      const item = equipment.find(e => e.id === targetId);
+      if (item) {
+        setEditingEquipment(item);
+        setNewEquipment({
+          name: item.name,
+          type: item.type,
+          serialNumber: item.serialNumber,
+          status: item.status,
+          totalQuantity: item.totalQuantity,
+          availableQuantity: item.availableQuantity,
+          brokenQuantity: item.brokenQuantity,
+          supplier: item.supplier || '',
+          location: item.location || '',
+          notes: item.notes || '',
+          foundationalInventory: item.foundationalInventory || '',
+          decennialReview: item.decennialReview || ''
+        });
+        setIsAddModalOpen(true);
+      }
+    }
+  }, [searchParams, equipment]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -245,6 +287,246 @@ export default function Equipment() {
     XLSX.writeFile(workbook, `جرد_العتاد_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const handlePrintList = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('يرجى السماح بالنوافذ المنبثقة لطباعة القائمة');
+      return;
+    }
+
+    const today = new Date();
+    const formattedDate = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+    const tableRows = filteredEquipment.map((e, index) => `
+      <tr>
+        <td style="text-align: center;">${index + 1}</td>
+        <td style="font-weight: 600;">${e.name}</td>
+        <td style="text-align: center;">${e.type === 'glassware' ? 'زجاجيات' : e.type === 'tech' ? 'أجهزة تقنية' : 'أخرى'}</td>
+        <td style="text-align: center; font-weight: 600;">${e.totalQuantity}</td>
+        <td style="text-align: center;">${e.availableQuantity}</td>
+        <td style="text-align: center;">${e.brokenQuantity}</td>
+        <td style="text-align: center;">${e.status === 'functional' ? 'سليم' : e.status === 'maintenance' ? 'صيانة' : 'تالف'}</td>
+        <td>${e.location || '-'}</td>
+        <td style="font-size: 0.85em;">${e.notes || '-'}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>سجل جرد العتاد والزجاجيات - ${formattedDate}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+            @page { size: A4 landscape; margin: 10mm; }
+            body { 
+              font-family: 'Cairo', sans-serif; 
+              margin: 0; 
+              padding: 10px; 
+              color: #1a1a1a;
+              line-height: 1.4;
+            }
+            .header-center { text-align: center; margin-bottom: 20px; }
+            .header-center h2 { margin: 5px 0; font-size: 18px; text-decoration: underline; }
+            .header-center h3 { margin: 5px 0; font-size: 14px; }
+            
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              font-size: 11px;
+              margin-top: 20px;
+            }
+            th, td { 
+              border: 1px solid #000; 
+              padding: 8px 4px; 
+              text-align: right; 
+            }
+            th { 
+              background-color: #f3f4f6; 
+              font-weight: 700; 
+              text-align: center;
+            }
+            .footer {
+              margin-top: 40px;
+              display: flex;
+              justify-content: space-between;
+              padding: 0 50px;
+            }
+            .sig-box { text-align: center; width: 200px; }
+            .sig-box p { margin-bottom: 50px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <div class="header-center">
+            <h3>الجمهورية الجزائرية الديمقراطية الشعبية</h3>
+            <h3>وزارة التربية الوطنية</h3>
+            <h2>سجل جرد العتاد والزجاجيات المخبرية</h2>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30px;">رقم</th>
+                <th>تعيين الجهاز / الأداة</th>
+                <th style="width: 80px;">النوع</th>
+                <th style="width: 50px;">الإجمالي</th>
+                <th style="width: 50px;">السليم</th>
+                <th style="width: 50px;">التالف</th>
+                <th style="width: 60px;">الحالة</th>
+                <th style="width: 100px;">الموقع</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="sig-box"><p>المقتصد / مسير المصالح الاقتصادية</p>..........................</div>
+            <div class="sig-box"><p>مسؤول المخبر</p>..........................</div>
+            <div class="sig-box"><p>مدير المؤسسة</p>..........................</div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    
+    doc.setFontSize(20);
+    doc.text('Equipment Inventory Report', 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+    const tableData = filteredEquipment.map((e, index) => [
+      index + 1,
+      e.name,
+      e.type === 'glassware' ? 'Glassware' : 'Tech',
+      e.totalQuantity,
+      e.status,
+      e.location || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['#', 'Name', 'Type', 'Qty', 'Status', 'Location']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [74, 124, 89], textColor: 255 },
+    });
+
+    doc.save(`equipment_inventory_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handleSmartUpdate = async () => {
+    if (equipment.length === 0) {
+      alert('لا توجد بيانات لتحديثها.');
+      return;
+    }
+
+    setIsSmartUpdating(true);
+    setBulkProgress({ current: 0, total: equipment.length });
+
+    try {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+      if (!apiKey) {
+        throw new Error('Gemini API key is missing.');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Process in chunks to avoid large payloads
+      const CHUNK_SIZE = 10;
+      for (let i = 0; i < equipment.length; i += CHUNK_SIZE) {
+        const chunk = equipment.slice(i, i + CHUNK_SIZE);
+        
+        let success = false;
+        let retries = 0;
+        const MAX_RETRIES = 3;
+
+        while (!success && retries < MAX_RETRIES) {
+          try {
+            const response = await ai.models.generateContent({
+              model: "gemini-3-flash-preview",
+              contents: `Analyze these laboratory equipment items and provide: 
+              1. A better Arabic name (smartNameAr).
+              2. A concise Arabic description (smartDescriptionAr).
+              3. An English keyword for image search (imageKeyword).
+              Items: ${JSON.stringify(chunk.map(item => ({ id: item.id, name: item.name })))}`,
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      smartNameAr: { type: Type.STRING },
+                      smartDescriptionAr: { type: Type.STRING },
+                      imageKeyword: { type: Type.STRING }
+                    },
+                    required: ["id", "smartNameAr", "smartDescriptionAr", "imageKeyword"]
+                  }
+                }
+              }
+            });
+
+            const enrichedData = JSON.parse(response.text);
+            const batch = writeBatch(db);
+            
+            enrichedData.forEach((update: any) => {
+              const docRef = doc(getUserCollection('equipment'), update.id);
+              batch.update(docRef, {
+                smartNameAr: update.smartNameAr,
+                smartDescriptionAr: update.smartDescriptionAr,
+                imageKeyword: update.imageKeyword,
+                lastSmartUpdate: serverTimestamp()
+              });
+            });
+            
+            await batch.commit();
+            success = true;
+          } catch (err: any) {
+            const errorStr = err.message || String(err);
+            if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+              retries++;
+              if (retries < MAX_RETRIES) {
+                // Exponential backoff: 5s, 10s, 20s
+                const waitTime = Math.pow(2, retries - 1) * 5000;
+                console.warn(`Quota exceeded. Retrying in ${waitTime/1000}s... (Attempt ${retries}/${MAX_RETRIES})`);
+                await new Promise(r => setTimeout(r, waitTime));
+              } else {
+                throw new Error('تم تجاوز حد الاستخدام المسموح به للذكاء الاصطناعي. يرجى المحاولة مرة أخرى لاحقاً.');
+              }
+            } else {
+              throw err;
+            }
+          }
+        }
+
+        setBulkProgress({ current: Math.min(i + CHUNK_SIZE, equipment.length), total: equipment.length });
+        // Larger delay to respect rate limits (15 RPM for free tier)
+        await new Promise(r => setTimeout(r, 4000));
+      }
+
+      alert('تم التحديث الذكي لجميع التجهيزات بنجاح!');
+    } catch (error: any) {
+      console.error('Error in smart update:', error);
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+        alert('تم تجاوز حد الاستخدام المسموح به للذكاء الاصطناعي (Quota Exceeded). يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.');
+      } else {
+        alert('حدث خطأ أثناء التحديث الذكي. يرجى المحاولة لاحقاً.');
+      }
+    } finally {
+      setIsSmartUpdating(false);
+      setBulkProgress({ current: 0, total: 0 });
+    }
+  };
+
   const handlePrint = (e: Equipment) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -287,12 +569,41 @@ export default function Equipment() {
     printWindow.document.close();
   };
 
-  const filteredEquipment = equipment.filter(e => {
-    const matchesSearch = e.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || e.type === filterType;
-    const matchesStatus = filterStatus === 'all' || e.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  const handleSort = (field: keyof Equipment) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredEquipment = equipment
+    .filter(e => {
+      const matchesSearch = e.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === 'all' || e.type === filterType;
+      const matchesStatus = filterStatus === 'all' || e.status === filterStatus;
+      return matchesSearch && matchesType && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortField === 'none') return 0;
+      
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+
+      if (aValue === undefined || bValue === undefined) return 0;
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+
+      if (aStr < bStr) return sortDirection === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const totalPieces = equipment.reduce((acc, curr) => acc + (curr.totalQuantity || 0), 0);
   const totalAvailable = equipment.reduce((acc, curr) => acc + (curr.availableQuantity || 0), 0);
@@ -311,7 +622,7 @@ export default function Equipment() {
           <p className="text-on-surface/60 text-xl font-bold">إدارة وتتبع <span className="text-primary italic">الأدوات الزجاجية</span> والأجهزة التكنولوجية</p>
         </div>
         
-        <div className="flex gap-4 relative z-10">
+        <div className="flex flex-wrap gap-4 relative z-10">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -320,36 +631,84 @@ export default function Equipment() {
             accept=".xls,.xlsx"
           />
           <button 
+            onClick={handlePrintList}
+            className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"
+          >
+            <Printer size={20} />
+            طباعة القائمة
+          </button>
+          <button 
+            onClick={handleExportPDF}
+            className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"
+          >
+            <FileDown size={20} />
+            تصدير PDF
+          </button>
+          <button 
+            onClick={() => setIsSmartUpdateConfirmOpen(true)}
+            disabled={isSmartUpdating}
+            className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95 disabled:opacity-50"
+          >
+            {isSmartUpdating ? (
+              <RefreshCw size={20} className="animate-spin" />
+            ) : (
+              <Sparkles size={20} />
+            )}
+            تحديث ذكي للكل
+          </button>
+          <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="bg-white text-primary border-2 border-primary/10 px-8 py-4 rounded-full font-black flex items-center gap-3 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95 disabled:opacity-50"
+            className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95 disabled:opacity-50"
           >
             {isImporting ? (
               <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
             ) : (
-              <FileUp size={22} />
+              <FileUp size={20} />
             )}
             استيراد XLS
           </button>
           <button 
-            onClick={handleExportXLS}
-            className="bg-white text-primary border-2 border-primary/10 px-8 py-4 rounded-full font-black flex items-center gap-3 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"
-          >
-            <Download size={22} />
-            تصدير الجرد
-          </button>
-          <button 
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-primary text-on-primary px-10 py-4 rounded-full font-black flex items-center gap-3 shadow-2xl shadow-primary/30 hover:bg-primary-container hover:shadow-primary/40 transition-all active:scale-95"
+            className="bg-primary text-on-primary px-8 py-3.5 rounded-full font-black flex items-center gap-2 shadow-2xl shadow-primary/30 hover:bg-primary-container hover:shadow-primary/40 transition-all active:scale-95"
           >
-            <Plus size={24} />
-            إضافة صنف جديد
+            <Plus size={22} />
+            إضافة صنف
           </button>
         </div>
 
         {/* Decorative elements */}
         <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       </header>
+
+      {/* Quick Access to Specialized Units */}
+      <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {[
+          { label: 'الأجهزة التقنية', path: '/tech-inventory', icon: Monitor, color: 'bg-primary/5 text-primary' },
+          { label: 'جرد الزجاجيات', path: '/glassware-breakage', icon: Beaker, color: 'bg-primary/5 text-primary' },
+          { label: 'النماذج الذكية', path: '/smart-forms', icon: FileText, color: 'bg-primary/5 text-primary' },
+          { label: 'النفايات الكيميائية', path: '/chemical-waste', icon: Trash2, color: 'bg-error/5 text-error' },
+          { label: 'الخريطة التربوية', path: '/educational-map', icon: Map, color: 'bg-primary/5 text-primary' },
+          { label: 'المستهلكات & SDS', path: '/consumables-sds', icon: Package, color: 'bg-primary/5 text-primary' },
+        ].map((unit, i) => (
+          <motion.a
+            key={unit.label}
+            href={`#${unit.path}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className={cn(
+              "flex flex-col items-center justify-center p-6 rounded-[32px] border border-outline/5 shadow-sm hover:shadow-md transition-all group text-center gap-3",
+              unit.color
+            )}
+          >
+            <div className="p-3 rounded-2xl bg-white shadow-sm group-hover:scale-110 transition-transform">
+              <unit.icon size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tight leading-tight">{unit.label}</span>
+          </motion.a>
+        ))}
+      </section>
 
       {/* Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -422,12 +781,54 @@ export default function Equipment() {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-surface-container-low/50 text-on-surface/40 text-xs font-black uppercase tracking-[0.2em]">
-                <th className="px-10 py-6">رقم الجرد</th>
-                <th className="px-10 py-6">تعيين الجهاز</th>
-                <th className="px-10 py-6 text-center">الكمية</th>
-                <th className="px-10 py-6 text-center">الممون</th>
-                <th className="px-10 py-6 text-center">الموقع</th>
-                <th className="px-10 py-6 text-center">الحالة</th>
+                <th className="px-10 py-6 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('serialNumber')}>
+                  <div className="flex items-center gap-2">
+                    رقم الجرد
+                    {sortField === 'serialNumber' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
+                <th className="px-10 py-6 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('name')}>
+                  <div className="flex items-center gap-2">
+                    تعيين الجهاز
+                    {sortField === 'name' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
+                <th className="px-10 py-6 text-center cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('totalQuantity')}>
+                  <div className="flex items-center justify-center gap-2">
+                    الكمية
+                    {sortField === 'totalQuantity' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
+                <th className="px-10 py-6 text-center cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('supplier')}>
+                  <div className="flex items-center justify-center gap-2">
+                    الممون
+                    {sortField === 'supplier' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
+                <th className="px-10 py-6 text-center cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('location')}>
+                  <div className="flex items-center justify-center gap-2">
+                    الموقع
+                    {sortField === 'location' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
+                <th className="px-10 py-6 text-center cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('status')}>
+                  <div className="flex items-center justify-center gap-2">
+                    الحالة
+                    {sortField === 'status' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    ) : <ArrowUpDown size={14} className="opacity-20" />}
+                  </div>
+                </th>
                 <th className="px-10 py-6 text-center">ملاحظات</th>
                 <th className="px-10 py-6"></th>
               </tr>
@@ -550,6 +951,98 @@ export default function Equipment() {
           </table>
         </div>
       </div>
+
+      {/* Smart Update Confirmation Modal */}
+      <AnimatePresence>
+        {isSmartUpdateConfirmOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSmartUpdateConfirmOpen(false)}
+              className="absolute inset-0 bg-primary/20 backdrop-blur-2xl"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              className="relative bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden border border-white/20 p-10 text-center"
+            >
+              <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-8">
+                <Sparkles size={40} />
+              </div>
+              <h3 className="text-3xl font-black text-primary mb-4 font-serif">تحديث ذكي شامل</h3>
+              <p className="text-on-surface/60 text-lg font-bold leading-relaxed mb-10">
+                هل أنت متأكد من رغبتك في تحديث معلومات التجهيزات ذكياً؟
+                <br />
+                <span className="text-sm opacity-70">قد تستغرق هذه العملية بعض الوقت. سيتم تحديث البيانات تلقائياً بناءً على اقتراحات الذكاء الاصطناعي.</span>
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => {
+                    setIsSmartUpdateConfirmOpen(false);
+                    handleSmartUpdate();
+                  }}
+                  className="flex-1 bg-primary text-on-primary py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:bg-primary-container transition-all active:scale-95"
+                >
+                  بدء التحديث
+                </button>
+                <button 
+                  onClick={() => setIsSmartUpdateConfirmOpen(false)}
+                  className="flex-1 bg-surface-container-low text-on-surface/40 py-4 rounded-2xl font-black hover:bg-surface-container transition-all active:scale-95"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Smart Update Progress Overlay */}
+      <AnimatePresence>
+        {isSmartUpdating && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-primary/40 backdrop-blur-3xl" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative bg-white w-full max-w-md rounded-[40px] shadow-2xl p-12 text-center"
+            >
+              <div className="relative w-32 h-32 mx-auto mb-8">
+                <div className="absolute inset-0 border-8 border-primary/10 rounded-full" />
+                <svg className="absolute inset-0 w-full h-full -rotate-90">
+                  <circle 
+                    cx="64" cy="64" r="56" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="8" 
+                    strokeDasharray={2 * Math.PI * 56}
+                    strokeDashoffset={2 * Math.PI * 56 * (1 - (bulkProgress.current / bulkProgress.total))}
+                    className="text-primary transition-all duration-500"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <RefreshCw size={32} className="text-primary animate-spin" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-black text-primary mb-2 font-serif">جاري التحديث الذكي...</h3>
+              <p className="text-on-surface/40 font-bold mb-8">
+                معالجة العنصر {bulkProgress.current} من أصل {bulkProgress.total}
+              </p>
+              <div className="w-full bg-surface-container-low h-3 rounded-full overflow-hidden mb-2">
+                <motion.div 
+                  className="h-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                />
+              </div>
+              <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest">يرجى عدم إغلاق الصفحة</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Add Modal */}
       <AnimatePresence>
