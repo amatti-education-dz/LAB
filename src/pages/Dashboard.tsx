@@ -303,13 +303,10 @@ export default function Dashboard() {
 
   const modules = [
     { title: 'لوحة الجرد الشاملة', desc: 'إدارة كافة ممتلكات المخبر من كواشف، أجهزة، زجاجيات ونفايات في مكان واحد.', count: (counts.chemicals + counts.equipment).toString(), icon: Database, color: 'bg-primary/10', path: '/inventory' },
-    { title: 'التقارير اليومية', desc: 'تسجيل ومتابعة النشاطات اليومية للمخبر والحصص التطبيقية.', count: counts.reports.toString(), icon: FileText, color: 'bg-primary/5', path: '/daily-report' },
-    { title: 'التحضير الذكي للنماذج', desc: 'مكتبة رقمية للقوالب الرسمية تتيح رقمنة المستندات الورقية وتتبع حالة التوقيعات والاعتمادات.', count: 'جديد', icon: BookOpen, color: 'bg-surface-container-low', path: '/smart-forms' },
-    { title: 'إدارة الخريطة التربوية', desc: 'أداة بصرية لتوزيع الأفواج التربوية والمستويات الدراسية على المخابر المتاحة وتعيين الأساتذة المشرفين.', count: 'جديد', icon: Map, color: 'bg-primary/10', path: '/educational-map' },
-    { title: 'مركز النسخ الاحتياطي', desc: 'واجهة تقنية متطورة لمراقبة حجم البيانات وإدارة النسخ الاحتياطي بصيغة JSON لضمان سلامة السجلات.', count: 'جديد', icon: Database, color: 'bg-surface-container-low', path: '/backup' },
+    { title: 'المتابعة البيداغوجية', desc: 'تسيير الجداول الزمنية، خريطة الأقسام، والتحضير الذكي للنشاطات.', count: 'جديد', icon: BookOpen, color: 'bg-primary/5', path: '/pedagogical' },
+    { title: 'التقارير اليومية', desc: 'تسجيل ومتابعة النشاطات اليومية للمخبر والحصص التطبيقية.', count: counts.reports.toString(), icon: FileText, color: 'bg-surface-container-low', path: '/daily-report' },
+    { title: 'مركز النسخ الاحتياطي', desc: 'واجهة تقنية متطورة لمراقبة حجم البيانات وإدارة النسخ الاحتياطي بصيغة JSON لضمان سلامة السجلات.', count: 'جديد', icon: Database, color: 'bg-surface-container-high', path: '/backup' },
     { title: 'فريق الأساتذة', desc: 'قائمة أساتذة العلوم والفيزياء المستفيدين من خدمات المخبر.', count: counts.teachers.toString(), icon: Users, color: 'bg-primary/10', path: '/teachers' },
-    { title: 'المتابعة البيداغوجية', desc: 'مواءمة الوسائل مع المناهج الدراسية والدروس التطبيقية.', count: '12', icon: BookOpen, color: 'bg-primary/5', path: '/reports' },
-    { title: 'جدول الحصص', desc: 'التوقيت الأسبوعي لاستخدام المخابر وتوزيع القاعات.', count: 'اليوم', icon: Calendar, color: 'bg-surface-container-low', path: '/reports' },
     { title: 'الأمن والسلامة', desc: 'بروتوكولات السلامة، طفايات الحريق، ومعدات الإسعاف الأولي.', count: counts.incidents.toString(), icon: ShieldAlert, color: 'bg-error/10', path: '/safety' },
   ];
 

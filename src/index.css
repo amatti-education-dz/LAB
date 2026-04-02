@@ -103,3 +103,148 @@
   }
 }
 
+/* Educational Map (v7) Styles */
+.v7s-section {
+  background: white;
+  border-radius: 40px;
+  border: 1px solid rgba(var(--color-outline), 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.v7s-title {
+  padding: 2.5rem;
+  border-bottom: 1px solid rgba(var(--color-outline), 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(var(--color-surface-container-low), 0.3);
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--color-primary);
+}
+
+.v7map-toolbar {
+  padding: 1.5rem 2.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.v7map-sel {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  outline: none;
+}
+
+.v7map-sel:focus {
+  border-color: var(--color-primary);
+}
+
+.v7s-save-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v7s-save-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.v7map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 2.5rem;
+}
+
+.v7map-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 20px;
+  padding: 1.5rem;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.v7map-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.mc-head {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.mc-sub {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #666;
+  margin-bottom: 1.25rem;
+}
+
+.mc-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mc-g {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  background: #f8f9fa;
+  color: #333;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-g.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.mc-add {
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px dashed #ccc;
+  background: transparent;
+  color: #666;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(var(--color-primary), 0.05);
+}
+

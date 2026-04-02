@@ -31,6 +31,7 @@ import ErrorBoundary from './ErrorBoundary';
 const navItems = [
   { name: 'لوحة القيادة', path: '/', icon: LayoutDashboard },
   { name: 'إدارة المخزون', path: '/inventory', icon: Database },
+  { name: 'المتابعة البيداغوجية', path: '/pedagogical', icon: BookOpen },
   { name: 'الإعدادات', path: '/settings', icon: Settings },
 ];
 

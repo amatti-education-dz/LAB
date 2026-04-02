@@ -19,6 +19,7 @@ import DailyReport from './pages/DailyReport';
 import Settings from './pages/Settings';
 import InventoryDashboard from './pages/InventoryDashboard';
 import Maintenance from './pages/Maintenance';
+import PedagogicalDashboard from './pages/PedagogicalDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import DataDeletion from './pages/DataDeletion';
 import TermsOfService from './pages/TermsOfService';
@@ -69,6 +70,7 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="inventory" element={<InventoryDashboard />} />
+          <Route path="pedagogical" element={<PedagogicalDashboard />} />
           <Route path="maintenance" element={<Maintenance />} />
           <Route path="chemicals" element={<Chemicals />} />
           <Route path="equipment" element={<Equipment />} />
