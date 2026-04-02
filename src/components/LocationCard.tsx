@@ -103,7 +103,15 @@ export default function LocationCard({
       },
       (err) => {
         console.error("Geolocation error:", err);
-        setError("يرجى السماح بالوصول إلى الموقع الجغرافي.");
+        if (err.code === 1) {
+          setError("تم رفض الوصول إلى الموقع. يرجى تفعيل إذن الموقع في إعدادات المتصفح.");
+        } else if (err.code === 2) {
+          setError("تعذر تحديد الموقع. يرجى التأكد من تشغيل الـ GPS.");
+        } else if (err.code === 3) {
+          setError("انتهت مهلة تحديد الموقع. يرجى المحاولة مرة أخرى.");
+        } else {
+          setError("حدث خطأ أثناء تحديد الموقع الجغرافي.");
+        }
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
