@@ -36,6 +36,13 @@ const pedagogicalModules = [
     path: '/pedagogical-tracking' 
   },
   { 
+    title: 'سجل المتابعة', 
+    desc: 'سجل رقمي متكامل يضم استعمال الوسائل، حصيلة الأعمال التطبيقية، والتقدم في البرنامج.', 
+    icon: BookOpen, 
+    color: 'bg-secondary/10', 
+    path: '/follow-up-registry' 
+  },
+  { 
     title: 'إدارة الخريطة التربوية', 
     desc: 'توزيع التلاميذ والأقسام على القاعات والمخابر المتاحة.', 
     icon: Map, 

@@ -30,6 +30,12 @@ import ChemicalWaste from './pages/ChemicalWaste';
 import EducationalMap from './pages/EducationalMap';
 import ConsumablesSDS from './pages/ConsumablesSDS';
 import BackupCenter from './pages/BackupCenter';
+import Timetable from './pages/Timetable';
+import LabSchedule from './pages/LabSchedule';
+import PedagogicalTracking from './pages/PedagogicalTracking';
+import FollowUpRegistry from './pages/FollowUpRegistry';
+import Sync from './pages/Sync';
+import ActivityRequest from './pages/ActivityRequest';
 import Layout from './components/Layout';
 import FirebaseSetup from './components/FirebaseSetup';
 
@@ -81,6 +87,12 @@ export default function App() {
           <Route path="educational-map" element={<EducationalMap />} />
           <Route path="consumables-sds" element={<ConsumablesSDS />} />
           <Route path="backup" element={<BackupCenter />} />
+          <Route path="timetable" element={<Timetable />} />
+          <Route path="lab-schedule" element={<LabSchedule />} />
+          <Route path="pedagogical-tracking" element={<PedagogicalTracking />} />
+          <Route path="follow-up-registry" element={<FollowUpRegistry />} />
+          <Route path="sync" element={<Sync />} />
+          <Route path="activity-request" element={<ActivityRequest />} />
           <Route path="safety" element={<Safety />} />
           <Route path="reports" element={<Reports />} />
           <Route path="archive" element={<Archive />} />

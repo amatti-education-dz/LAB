@@ -143,6 +143,18 @@ export default function EducationalMap() {
     }
   };
 
+  const getCleanLevel = (level: string) => {
+    if (level === 'السنة الأولى ثانوي') return 'أولى ثانوي';
+    if (level === 'السنة الثانية ثانوي') return 'ثانية ثانوي';
+    if (level === 'السنة الثالثة ثانوي') return 'ثالثة ثانوي';
+    return level;
+  };
+
+  const getCleanBranch = (branch: string) => {
+    if (!branch) return '';
+    return branch.replace('شعبة ', '').replace('(', '').replace(')', '');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#fcf9f3] flex items-center justify-center">
@@ -273,8 +285,8 @@ export default function EducationalMap() {
         <div className="v7map-grid">
           {filteredGroups.map((item, idx) => (
             <div key={`${item.level}-${item.branch}`} className="v7map-card">
-              <div className="mc-head">{item.level}</div>
-              {cycle === 'ثانوي' && <div className="mc-sub">{item.branch}</div>}
+              <div className="mc-head">{getCleanLevel(item.level)}</div>
+              {cycle === 'ثانوي' && <div className="mc-sub">{getCleanBranch(item.branch)}</div>}
               <div className="mc-groups">
                 {item.groups.map(g => (
                   <button 
@@ -283,13 +295,13 @@ export default function EducationalMap() {
                     title="انقر للحذف" 
                     onClick={() => toggleGroup(item.level, item.branch, g)}
                   >
-                    {g}
+                    {g.toString().padStart(2, '0')}
                   </button>
                 ))}
                 <button 
                   className="mc-add" 
                   onClick={() => toggleGroup(item.level, item.branch, (item.groups.length > 0 ? Math.max(...item.groups) + 1 : 1))}
-                  title={`إضافة فوج ${item.groups.length > 0 ? Math.max(...item.groups) + 1 : 1}`}
+                  title={`إضافة فوج ${(item.groups.length > 0 ? Math.max(...item.groups) + 1 : 1).toString().padStart(2, '0')}`}
                 >
                   + فوج
                 </button>

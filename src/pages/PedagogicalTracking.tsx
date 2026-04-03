@@ -1,0 +1,819 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { BookOpen, CheckCircle2, AlertCircle, ArrowLeft, Plus, Download, Filter, Search, MoreVertical, Trash2, Edit2, TrendingUp, FileText, Calendar, ExternalLink } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '../lib/utils';
+import { CURRICULUM_DB } from '../data/curriculumData';
+import { onSnapshot, query } from 'firebase/firestore';
+import { getUserCollection, handleFirestoreError, OperationType } from '../firebase';
+import { useTimeSlots } from '../hooks/useTimeSlots';
+import TimeSlotManager from '../components/TimeSlotManager';
+import { Clock } from 'lucide-react';
+
+interface Teacher {
+  id: string;
+  name: string;
+  subject: string;
+}
+
+interface TrackingEntry {
+  id: string;
+  subject: string;
+  level: string;
+  branch?: string;
+  teacher: string;
+  progress: number;
+  lastLesson: string;
+  date: string;
+  status: 'on-track' | 'delayed' | 'ahead';
+  // New fields
+  domain?: string;
+  unit?: string;
+  completedWeeks?: number;
+  delayWeeks?: number;
+  delayReason?: string;
+  pedagogicalAdjustment?: string;
+}
+
+const INITIAL_DATA: TrackingEntry[] = [
+  // السنة الأولى ثانوي
+  { 
+    id: '1', 
+    subject: 'العلوم الفيزيائية', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك آداب',
+    teacher: 'أ. سمير', 
+    progress: 45, 
+    lastLesson: 'إثبات أن للهواء وزن (إيجاد كتلة لتر واحد من الهواء) وتجربة إظهار مرونة الهواء بالانضغاط باستعمال المحقنة', 
+    date: '2024-03-20', 
+    status: 'on-track',
+    domain: 'الإنسان والاتصال',
+    unit: 'الهواء من حولنا',
+    completedWeeks: 8,
+    delayWeeks: 0
+  },
+  { 
+    id: '2', 
+    subject: 'العلوم الفيزيائية', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك آداب',
+    teacher: 'أ. سمير', 
+    progress: 30, 
+    lastLesson: 'تجربة تشكل الخيال في الغرفة المظلمة ودراسة تأثير قطر الفتحة وبعد الشاشة', 
+    date: '2024-03-19', 
+    status: 'on-track',
+    domain: 'الإنسان والاتصال',
+    unit: 'الضوء للرؤية',
+    completedWeeks: 6,
+    delayWeeks: 0
+  },
+  { 
+    id: '3', 
+    subject: 'علوم الطبيعة والحياة', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك آداب',
+    teacher: 'أ. أحمد', 
+    progress: 55, 
+    lastLesson: 'آليات تكاثر الخلايا والنمو (ملاحظات مجهرية لنمو الجذور)', 
+    date: '2024-03-21', 
+    status: 'on-track',
+    domain: 'استمرارية الكائنات الحية',
+    unit: 'التكاثر عند الإنسان',
+    completedWeeks: 10,
+    delayWeeks: 0
+  },
+  { 
+    id: '4', 
+    subject: 'تكنولوجيا (ميكانيك)', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك علوم وتكنولوجيا',
+    teacher: 'أ. مراد', 
+    progress: 60, 
+    lastLesson: 'ممارسة واستغلال برمجيات DAO / CAO لرسم قطع بسيطة', 
+    date: '2024-03-18', 
+    status: 'on-track',
+    domain: 'الوسط التكنولوجي والرسم التقني',
+    unit: 'الرسم المدعم بالحاسوب',
+    completedWeeks: 11,
+    delayWeeks: 0
+  },
+  { 
+    id: '5', 
+    subject: 'هندسة طرائق', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك علوم وتكنولوجيا',
+    teacher: 'أ. ليلى', 
+    progress: 40, 
+    lastLesson: 'صناعة الأسبيرين وتحضير الصابون في المخبر', 
+    date: '2024-03-22', 
+    status: 'delayed',
+    domain: 'مدخل إلى هندسة الطرائق',
+    unit: 'طريقة صناعية',
+    completedWeeks: 7,
+    delayWeeks: 1,
+    delayReason: 'نقص في المواد الكيميائية الأساسية'
+  },
+  { 
+    id: '6', 
+    subject: 'هندسة كهربائية', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك علوم وتكنولوجيا',
+    teacher: 'أ. مريم', 
+    progress: 75, 
+    lastLesson: 'تصنيف الأجهزة حسب آثار التيار الكهربائي (حراري، مغناطيسي، كيميائي)', 
+    date: '2024-03-17', 
+    status: 'ahead',
+    domain: 'الطاقة الكهربائية',
+    unit: 'مسار الطاقة',
+    completedWeeks: 13,
+    delayWeeks: 0
+  },
+  { 
+    id: '7', 
+    subject: 'هندسة ميكانيكية', 
+    level: 'أولى ثانوي', 
+    branch: 'جدع مشترك علوم وتكنولوجيا',
+    teacher: 'أ. سعيد', 
+    progress: 50, 
+    lastLesson: 'إتمام مختلف المساقط لقطعة بسيطة مع مراعاة اتفاقيات التمثيل', 
+    date: '2024-03-16', 
+    status: 'on-track',
+    domain: 'الوسط التكنولوجي والرسم التقني',
+    unit: 'اتفاقيات التمثيل',
+    completedWeeks: 9,
+    delayWeeks: 0
+  },
+
+  // السنة الثانية ثانوي
+  { 
+    id: '8', 
+    subject: 'العلوم الفيزيائية', 
+    level: 'ثانية ثانوي', 
+    branch: 'علوم تجريبية / رياضيات',
+    teacher: 'أ. رضا', 
+    progress: 65, 
+    lastLesson: 'معايرة كلور الماء بواسطة الصود (تحديد التركيز المولي)', 
+    date: '2024-03-20', 
+    status: 'on-track',
+    domain: 'المادة وتحولاتها',
+    unit: 'تعيين كمية المادة بواسطة المعايرة',
+    completedWeeks: 12,
+    delayWeeks: 0
+  },
+  { 
+    id: '9', 
+    subject: 'علوم الطبيعة والحياة', 
+    level: 'ثانية ثانوي', 
+    branch: 'علوم تجريبية / رياضيات',
+    teacher: 'أ. حنان', 
+    progress: 70, 
+    lastLesson: 'إظهار دور المنعكس العضلي في الحفاظ على وضعية الجسم', 
+    date: '2024-03-19', 
+    status: 'on-track',
+    domain: 'آليات التنظيم على مستوى العضوية',
+    unit: 'التنظيم العصبي',
+    completedWeeks: 13,
+    delayWeeks: 0
+  },
+  { 
+    id: '10', 
+    subject: 'هندسة الطرائق', 
+    level: 'ثانية ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. سامية', 
+    progress: 55, 
+    lastLesson: 'معايرة محلول KMnO4 وتقدير قساوة الماء (الدرجة الهيدروتيمترية)', 
+    date: '2024-03-21', 
+    status: 'on-track',
+    domain: 'الماء',
+    unit: 'التحليل الحجمي',
+    completedWeeks: 10,
+    delayWeeks: 0
+  },
+  { 
+    id: '11', 
+    subject: 'هندسة كهربائية', 
+    level: 'ثانية ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. فؤاد', 
+    progress: 85, 
+    lastLesson: 'تركيب تقويم بجسر مندمج للثنائيات ودراسة مخرج التغذية', 
+    date: '2024-03-18', 
+    status: 'ahead',
+    domain: 'الدارات المنطقية والتغذية',
+    unit: 'وظيفة التغذية',
+    completedWeeks: 15,
+    delayWeeks: 0
+  },
+  { 
+    id: '12', 
+    subject: 'هندسة ميكانيكية', 
+    level: 'ثانية ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. رفيق', 
+    progress: 60, 
+    lastLesson: 'نشاطات فك وتركيب العناصر لسند تقني واستغلال برمجيات التصميم', 
+    date: '2024-03-17', 
+    status: 'on-track',
+    domain: 'الرسم والتصميم المدعم بالحاسوب',
+    unit: 'التجميعات والبرمجية',
+    completedWeeks: 11,
+    delayWeeks: 0
+  },
+
+  // السنة الثالثة ثانوي
+  { 
+    id: '13', 
+    subject: 'علوم الطبيعة والحياة', 
+    level: 'ثالثة ثانوي', 
+    branch: 'علوم تجريبية / رياضيات',
+    teacher: 'أ. بن علي', 
+    progress: 80, 
+    lastLesson: 'إظهار خصائص الإنزيمات وتأثير pH والحرارة عبر ExAO', 
+    date: '2024-03-20', 
+    status: 'on-track',
+    domain: 'التخصص الوظيفي للبروتينات',
+    unit: 'دور البروتينات في التحفيز الإنزيمي',
+    completedWeeks: 14,
+    delayWeeks: 0
+  },
+  { 
+    id: '14', 
+    subject: 'العلوم الفيزيائية', 
+    level: 'ثالثة ثانوي', 
+    branch: 'علوم تجريبية / رياضيات / تقني رياضي',
+    teacher: 'أ. قاسم', 
+    progress: 75, 
+    lastLesson: 'المتابعة الزمنية لتحول كيميائي في وسط مائي عن طريق قياس الناقلية', 
+    date: '2024-03-19', 
+    status: 'on-track',
+    domain: 'المادة وتحولاتها',
+    unit: 'المتابعة الزمنية لتحول كيميائي',
+    completedWeeks: 13,
+    delayWeeks: 0
+  },
+  { 
+    id: '15', 
+    subject: 'هندسة الطرائق', 
+    level: 'ثالثة ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. ليلى', 
+    progress: 50, 
+    lastLesson: 'قياس كمية الحرارة بالمسعر الحراري (دراسة التغير في المحتوى الحراري)', 
+    date: '2024-03-21', 
+    status: 'delayed',
+    domain: 'الديناميكا الحرارية',
+    unit: 'المظهر الطاقوي للتفاعل',
+    completedWeeks: 9,
+    delayWeeks: 1,
+    delayReason: 'تأخر في استلام المسعرات الجديدة للمخبر'
+  },
+  { 
+    id: '16', 
+    subject: 'هندسة كهربائية', 
+    level: 'ثالثة ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. مريم', 
+    progress: 90, 
+    lastLesson: 'تصميم وطبع الدارات المطبوعة لمشروع تقني مندمج', 
+    date: '2024-03-22', 
+    status: 'ahead',
+    domain: 'المشاريع التقنية',
+    unit: 'مشروع تقني',
+    completedWeeks: 16,
+    delayWeeks: 0
+  },
+  { 
+    id: '17', 
+    subject: 'هندسة ميكانيكية', 
+    level: 'ثالثة ثانوي', 
+    branch: 'تقني رياضي',
+    teacher: 'أ. حمزة', 
+    progress: 70, 
+    lastLesson: 'إنجاز عقد المرحلة لقطعة ميكانيكية وتحديد سماحات التشغيل', 
+    date: '2024-03-18', 
+    status: 'on-track',
+    domain: 'تحضير الإنتاج',
+    unit: 'أدوات التحضير',
+    completedWeeks: 12,
+    delayWeeks: 0
+  },
+];
+
+export default function PedagogicalTracking() {
+  const navigate = useNavigate();
+  const { timeSlots } = useTimeSlots();
+  const [isTimeManagerOpen, setIsTimeManagerOpen] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [entries, setEntries] = useState<TrackingEntry[]>(INITIAL_DATA);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredEntries = entries.filter(entry => 
+    entry.subject.includes(searchTerm) || 
+    entry.teacher.includes(searchTerm) || 
+    entry.level.includes(searchTerm)
+  );
+
+  const openProgressions = () => {
+    window.open('https://drive.google.com/drive/folders/1Q79KYQZzX7cbsYN6EedzYyQ7oFayfxx8?usp=sharing', '_blank');
+  };
+
+  const stats = useMemo(() => {
+    const totalProgress = entries.reduce((acc, curr) => acc + curr.progress, 0);
+    const avgProgress = entries.length > 0 ? Math.round(totalProgress / entries.length) : 0;
+    const aheadCount = entries.filter(e => e.status === 'ahead').length;
+    const delayedCount = entries.filter(e => e.status === 'delayed').length;
+
+    return {
+      avgProgress,
+      aheadCount,
+      delayedCount
+    };
+  }, [entries]);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<TrackingEntry | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    const q = query(getUserCollection('teachers'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        name: doc.data().name,
+        subject: doc.data().subject 
+      } as Teacher));
+      setTeachers(items);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'teachers');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleEdit = (entry: TrackingEntry) => {
+    setEditingEntry({ ...entry });
+    setIsAdding(false);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddNew = () => {
+    const newEntry: TrackingEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      subject: '',
+      level: '',
+      branch: '',
+      teacher: '',
+      progress: 0,
+      lastLesson: '',
+      date: new Date().toISOString().split('T')[0],
+      status: 'on-track',
+      domain: '',
+      unit: '',
+      completedWeeks: 0,
+      delayWeeks: 0,
+      delayReason: '',
+      pedagogicalAdjustment: ''
+    };
+    setEditingEntry(newEntry);
+    setIsAdding(true);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingEntry) {
+      if (isAdding) {
+        setEntries(prev => [editingEntry, ...prev]);
+      } else {
+        setEntries(prev => prev.map(e => e.id === editingEntry.id ? editingEntry : e));
+      }
+      setIsEditModalOpen(false);
+      setEditingEntry(null);
+      setIsAdding(false);
+    }
+  };
+
+  // Curriculum selection logic
+  const availableLevels = useMemo(() => Object.keys(CURRICULUM_DB), []);
+  
+  const availableBranches = useMemo(() => {
+    if (!editingEntry || !editingEntry.level) return [];
+    return Object.keys(CURRICULUM_DB[editingEntry.level] || {});
+  }, [editingEntry?.level]);
+
+  const availableSubjects = useMemo(() => {
+    if (!editingEntry || !editingEntry.level || !editingEntry.branch) return [];
+    return Object.keys(CURRICULUM_DB[editingEntry.level]?.[editingEntry.branch] || {});
+  }, [editingEntry?.level, editingEntry?.branch]);
+
+  const availableDomains = useMemo(() => {
+    if (!editingEntry || !editingEntry.level || !editingEntry.branch || !editingEntry.subject) return [];
+    const subjectData = CURRICULUM_DB[editingEntry.level]?.[editingEntry.branch]?.[editingEntry.subject];
+    return subjectData?.domains || [];
+  }, [editingEntry?.level, editingEntry?.branch, editingEntry?.subject]);
+
+  const availableUnits = useMemo(() => {
+    if (!editingEntry || !editingEntry.domain) return [];
+    const domain = availableDomains.find(d => d.title === editingEntry.domain);
+    return domain?.units || [];
+  }, [editingEntry, availableDomains]);
+
+  const availableLessons = useMemo(() => {
+    if (!editingEntry || !editingEntry.unit) return [];
+    const unit = availableUnits.find(u => u.title === editingEntry.unit);
+    return unit?.lessons || [];
+  }, [editingEntry, availableUnits]);
+
+  return (
+    <div className="space-y-12 max-w-7xl mx-auto px-6 pb-24 rtl font-sans" dir="rtl">
+      {/* Edit Modal */}
+      {isEditModalOpen && editingEntry && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl border border-outline/10"
+          >
+            <div className="p-8 border-b border-outline/5 bg-surface-container-low/50 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+                  {isAdding ? <Plus size={24} /> : <Edit2 size={24} />}
+                </div>
+                <h2 className="text-3xl font-black text-primary tracking-tight">
+                  {isAdding ? 'تسجيل تقدم جديد' : 'حجز الدرس'}
+                </h2>
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-2 hover:bg-outline/10 rounded-full transition-colors"
+              >
+                <ArrowLeft size={24} className="rotate-180" />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {isAdding ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-primary/5 p-6 rounded-[32px] border border-primary/10 mb-8">
+                  <div className="space-y-2">
+                    <label className="text-sm font-black text-primary mr-2">المستوى</label>
+                    <select 
+                      className="w-full bg-white border-none rounded-2xl px-4 py-3 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                      value={editingEntry.level}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, level: e.target.value, branch: '', subject: '', domain: '', unit: '', lastLesson: '' })}
+                    >
+                      <option value="">اختر المستوى...</option>
+                      {availableLevels.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-black text-primary mr-2">الشعبة</label>
+                    <select 
+                      className="w-full bg-white border-none rounded-2xl px-4 py-3 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none disabled:opacity-50"
+                      value={editingEntry.branch}
+                      disabled={!editingEntry.level}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, branch: e.target.value, subject: '', domain: '', unit: '', lastLesson: '' })}
+                    >
+                      <option value="">اختر الشعبة...</option>
+                      {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-black text-primary mr-2">المادة</label>
+                    <select 
+                      className="w-full bg-white border-none rounded-2xl px-4 py-3 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none disabled:opacity-50"
+                      value={editingEntry.subject}
+                      disabled={!editingEntry.branch}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, subject: e.target.value, domain: '', unit: '', lastLesson: '' })}
+                    >
+                      <option value="">اختر المادة...</option>
+                      {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 mb-6">
+                  <div className="flex justify-between text-sm font-black text-primary">
+                    <span>المستوى: {editingEntry.level}</span>
+                    <span>الشعبة: {editingEntry.branch}</span>
+                    <span>المادة: {editingEntry.subject}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">الأستاذ</label>
+                  <select 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                    value={editingEntry.teacher}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, teacher: e.target.value })}
+                  >
+                    <option value="">اختر الأستاذ...</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">التاريخ</label>
+                  <input 
+                    type="date" 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={editingEntry.date}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">المجال</label>
+                  <select 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                    value={editingEntry.domain || ''}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, domain: e.target.value, unit: '', lastLesson: '' })}
+                  >
+                    <option value="">اختر المجال...</option>
+                    {availableDomains.map(d => (
+                      <option key={d.title} value={d.title}>{d.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">الوحدة</label>
+                  <select 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none disabled:opacity-50"
+                    value={editingEntry.unit || ''}
+                    disabled={!editingEntry.domain}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, unit: e.target.value, lastLesson: '' })}
+                  >
+                    <option value="">اختر الوحدة...</option>
+                    {availableUnits.map(u => (
+                      <option key={u.title} value={u.title}>{u.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black text-on-surface/60 mr-2">الدرس (النشاط التطبيقي)</label>
+                <select 
+                  className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none disabled:opacity-50"
+                  value={editingEntry.lastLesson || ''}
+                  disabled={!editingEntry.unit}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, lastLesson: e.target.value })}
+                >
+                  <option value="">اختر الدرس...</option>
+                  {availableLessons.map(l => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">عدد الأسابيع المنجزة</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={editingEntry.completedWeeks || 0}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, completedWeeks: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-black text-on-surface/60 mr-2">عدد أسابيع التأخر وفق التدرجات</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={editingEntry.delayWeeks || 0}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, delayWeeks: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black text-on-surface/60 mr-2">سبب التأخر</label>
+                <textarea 
+                  className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all min-h-[100px]"
+                  value={editingEntry.delayReason || ''}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, delayReason: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-black text-on-surface/60 mr-2">الاجراءات المتخدة أو التعديل البيداغوجي</label>
+                <textarea 
+                  className="w-full bg-surface-container-low border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-primary/20 transition-all min-h-[100px]"
+                  value={editingEntry.pedagogicalAdjustment || ''}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, pedagogicalAdjustment: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="p-8 bg-surface-container-low/30 border-t border-outline/5 flex justify-end gap-4">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-8 py-4 rounded-2xl font-black text-on-surface/60 hover:bg-outline/10 transition-all"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={handleSaveEdit}
+                className="bg-primary text-on-primary px-10 py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:bg-primary-container transition-all active:scale-95"
+              >
+                حفظ التغييرات
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Time Slot Manager Modal */}
+      <TimeSlotManager 
+        isOpen={isTimeManagerOpen} 
+        onClose={() => setIsTimeManagerOpen(false)} 
+      />
+
+      {/* Header */}
+      <header className="relative flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-4">
+        <div className="text-right space-y-3 relative z-10">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-full text-primary text-xs font-black uppercase tracking-widest mb-2">
+            <TrendingUp size={14} />
+            المتابعة البيداغوجية
+          </div>
+          <h1 className="text-6xl font-black text-primary tracking-tighter font-serif">المتابعة البيداغوجية</h1>
+          <p className="text-on-surface/60 text-xl font-bold">متابعة تقدم الدروس وتنفيذ المنهاج الدراسي.</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-4 relative z-10">
+          <button 
+            onClick={() => setIsTimeManagerOpen(true)}
+            className="bg-white text-primary border border-outline/10 px-6 py-4 rounded-[24px] font-black flex items-center gap-3 shadow-xl hover:bg-primary/5 transition-all active:scale-95"
+          >
+            <Clock size={20} />
+            تعديل المواقيت
+          </button>
+          <button 
+            onClick={() => navigate('/pedagogical')}
+            className="bg-white text-primary border border-outline/10 px-8 py-4 rounded-[32px] font-black flex items-center gap-3 shadow-xl hover:bg-primary/5 transition-all active:scale-95"
+          >
+            <ArrowLeft size={24} />
+            العودة للفضاء البيداغوجي
+          </button>
+          <button 
+            onClick={openProgressions}
+            className="bg-secondary text-on-secondary px-8 py-4 rounded-[32px] font-black flex items-center gap-3 shadow-xl hover:bg-secondary/90 transition-all active:scale-95"
+          >
+            <ExternalLink size={24} />
+            التدرجات السنوية
+          </button>
+          <button 
+            onClick={handleAddNew}
+            className="bg-primary text-on-primary px-10 py-4 rounded-full font-black flex items-center gap-3 shadow-2xl shadow-primary/30 hover:bg-primary-container transition-all active:scale-95"
+          >
+            <Plus size={24} />
+            تسجيل تقدم جديد
+          </button>
+        </div>
+
+        <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      </header>
+
+      {/* Summary Stats */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="p-8 rounded-[40px] bg-primary/5 border border-primary/10 shadow-xl">
+          <div className="flex justify-between items-start mb-6">
+            <div className="p-4 bg-white rounded-2xl shadow-sm text-primary">
+              <CheckCircle2 size={24} />
+            </div>
+          </div>
+          <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest mb-1">نسبة الإنجاز العام</p>
+          <span className="text-4xl font-black tracking-tighter text-primary">{stats.avgProgress}%</span>
+        </div>
+        <div className="p-8 rounded-[40px] bg-success/5 border border-success/10 shadow-xl">
+          <div className="flex justify-between items-start mb-6">
+            <div className="p-4 bg-white rounded-2xl shadow-sm text-success">
+              <TrendingUp size={24} />
+            </div>
+          </div>
+          <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest mb-1">مواد متقدمة</p>
+          <span className="text-4xl font-black tracking-tighter text-success">{stats.aheadCount} مادة</span>
+        </div>
+        <div className="p-8 rounded-[40px] bg-error/5 border border-error/10 shadow-xl">
+          <div className="flex justify-between items-start mb-6">
+            <div className="p-4 bg-white rounded-2xl shadow-sm text-error">
+              <AlertCircle size={24} />
+            </div>
+          </div>
+          <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest mb-1">مواد متأخرة</p>
+          <span className="text-4xl font-black tracking-tighter text-error">{stats.delayedCount} مادة</span>
+        </div>
+      </section>
+
+      {/* Tracking List */}
+      <section className="bg-white rounded-[40px] border border-outline/10 shadow-2xl overflow-hidden">
+        <div className="p-8 border-b border-outline/5 flex justify-between items-center bg-surface-container-low/30">
+          <h2 className="text-2xl font-black text-primary">متابعة تنفيذ المناهج</h2>
+          <div className="relative">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface/40" size={18} />
+            <input 
+              type="text" 
+              placeholder="بحث..." 
+              className="bg-white border border-outline/10 rounded-xl pr-10 pl-4 py-2 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredEntries.map((entry, i) => (
+            <motion.div
+              key={entry.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className="p-8 rounded-[32px] bg-surface-container-low border border-outline/5 hover:shadow-2xl transition-all group relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-2 h-full bg-primary/20 group-hover:bg-primary transition-colors" />
+              
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-primary uppercase tracking-widest mb-1">
+                    {entry.level} {entry.branch ? ` - ${entry.branch}` : ''}
+                  </span>
+                  <h3 className="text-2xl font-black text-on-surface tracking-tight">{entry.subject}</h3>
+                </div>
+                <div className={cn(
+                  "p-2 rounded-xl",
+                  entry.status === 'on-track' ? "bg-success/10 text-success" :
+                  entry.status === 'delayed' ? "bg-error/10 text-error" :
+                  "bg-primary/10 text-primary"
+                )}>
+                  {entry.status === 'on-track' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                      {entry.teacher.split(' ')[1]?.[0] || 'أ'}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-on-surface/40">الأستاذ</span>
+                      <span className="font-bold text-on-surface/80">{entry.teacher}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleEdit(entry)}
+                    className="p-3 bg-white text-primary rounded-xl shadow-sm border border-outline/5 hover:bg-primary hover:text-on-primary transition-all active:scale-90"
+                    title="تعديل"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-on-surface/40 uppercase tracking-widest">نسبة التقدم</span>
+                    <span className="text-primary">{entry.progress}%</span>
+                  </div>
+                  <div className="h-3 bg-surface-container-high rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${entry.progress}%` }}
+                      transition={{ duration: 1, delay: 0.5 }}
+                      className={cn(
+                        "h-full rounded-full",
+                        entry.progress > 80 ? "bg-success" : entry.progress > 40 ? "bg-primary" : "bg-error"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-outline/5 flex flex-col gap-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-on-surface/40">
+                    <div className="flex items-center gap-2">
+                      <FileText size={14} className="text-primary" />
+                      <span className="text-on-surface font-black">{entry.lastLesson}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} />
+                      {entry.date}
+                    </div>
+                  </div>
+                  {entry.delayWeeks && entry.delayWeeks > 0 ? (
+                    <div className="flex items-center gap-2 text-xs font-black text-error bg-error/5 p-2 rounded-lg">
+                      <AlertCircle size={14} />
+                      <span>تأخر: {entry.delayWeeks} أسابيع</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

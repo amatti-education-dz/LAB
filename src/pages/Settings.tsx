@@ -25,7 +25,8 @@ import {
   Smartphone,
   Facebook,
   Chrome,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, storage, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
@@ -66,6 +67,23 @@ export default function SettingsPage() {
   const [specialty, setSpecialty] = useState('');
   const [employeeId, setEmployeeId] = useState('1010101010101010');
   const [isEditingEmployeeId, setIsEditingEmployeeId] = useState(false);
+
+  // Time Slots State
+  const [timeSlots, setTimeSlots] = useState<string[]>([
+    '08:00 - 09:00',
+    '09:00 - 10:00',
+    '10:00 - 11:00',
+    '11:00 - 12:00',
+    '13:00 - 14:00',
+    '14:00 - 15:00',
+    '15:00 - 16:00',
+    '16:00 - 17:00',
+    '08:00 - 10:00',
+    '10:00 - 12:00',
+    '13:00 - 15:00',
+    '15:00 - 17:00'
+  ]);
+  const [newTimeSlot, setNewTimeSlot] = useState('');
 
   // Institution State
   const [selectedDirectorate, setSelectedDirectorate] = useState('');
@@ -379,6 +397,7 @@ export default function SettingsPage() {
           setSchoolAddress(data.address || '');
           setEmployeeId(data.employeeId || '1010101010101010');
           if (data.levels) setLevels(data.levels);
+          if (data.timeSlots) setTimeSlots(data.timeSlots);
         }
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, `settings/${auth.currentUser.uid}`);
@@ -423,6 +442,7 @@ export default function SettingsPage() {
         address: schoolAddress,
         employeeId,
         levels,
+        timeSlots,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
@@ -1074,6 +1094,77 @@ export default function SettingsPage() {
                         </div>
                       </motion.div>
                     ))}
+                  </div>
+                </section>
+
+                <section className="pt-12 border-t border-[#c4c8bd]/20">
+                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
+                    <Clock className="text-[#5c6146]" />
+                    مواقيت الحصص التعليمية
+                  </h3>
+                  <p className="text-[#5c6146] text-sm font-bold mb-6">تخصيص قائمة المواقيت المستخدمة في التقارير وسجلات المتابعة.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <input 
+                          type="text" 
+                          placeholder="مثال: 08:00 - 09:30"
+                          className="flex-1 bg-[#fcf9f3] border-2 border-transparent rounded-2xl px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold"
+                          value={newTimeSlot}
+                          onChange={(e) => setNewTimeSlot(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (newTimeSlot && !timeSlots.includes(newTimeSlot)) {
+                                setTimeSlots([...timeSlots, newTimeSlot]);
+                                setNewTimeSlot('');
+                              }
+                            }
+                          }}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (newTimeSlot && !timeSlots.includes(newTimeSlot)) {
+                              setTimeSlots([...timeSlots, newTimeSlot]);
+                              setNewTimeSlot('');
+                            }
+                          }}
+                          className="bg-[#2b3d22] text-white p-4 rounded-2xl shadow-lg hover:opacity-90 transition-all active:scale-95"
+                        >
+                          <Plus size={24} />
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        {timeSlots.map((slot, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-2 bg-[#fcf9f3] px-4 py-2 rounded-xl border border-[#c4c8bd]/20 group"
+                          >
+                            <span className="font-bold text-[#2b3d22]">{slot}</span>
+                            <button 
+                              type="button"
+                              onClick={() => setTimeSlots(timeSlots.filter((_, i) => i !== index))}
+                              className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 rounded-lg p-1"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100">
+                      <h4 className="font-black text-blue-900 mb-2 flex items-center gap-2">
+                        <AlertCircle size={18} />
+                        نصيحة تقنية
+                      </h4>
+                      <p className="text-sm text-blue-800 leading-relaxed">
+                        تظهر هذه المواقيت كقائمة منسدلة (Datalist) عند إدخال الوقت في التقارير اليومية وسجل استعمال الوسائل، مما يسهل عملية الإدخال السريع مع الحفاظ على إمكانية كتابة توقيت مخصص يدوياً.
+                      </p>
+                    </div>
                   </div>
                 </section>
               </div>

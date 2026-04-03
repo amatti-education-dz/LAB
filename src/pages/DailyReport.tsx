@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, Printer, ChevronLeft, Save, History, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { Trash2, Plus, Printer, ChevronLeft, Save, History, FileText, Loader2, CheckCircle2, Clock, Boxes } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { SCHOOL_DB } from '../data/schools';
+import { useTimeSlots } from '../hooks/useTimeSlots';
+import TimeSlotManager from '../components/TimeSlotManager';
+import ClassPicker from '../components/ClassPicker';
+import ResourcePicker from '../components/ResourcePicker';
 
 interface ReportRow {
   id: number;
   teacher: string;
   time: string;
   class: string;
-  activity: string;
+  activityType: string;
+  activityTitle: string;
   equipment: string;
   notes: string;
+}
+
+interface Teacher {
+  id: string;
+  name: string;
+  subject: string;
 }
 
 interface InstitutionSettings {
@@ -37,10 +48,21 @@ interface SavedReport {
 
 export default function DailyReport() {
   const navigate = useNavigate();
+  const { timeSlots, loading: loadingTimeSlots } = useTimeSlots();
+  const [isTimeManagerOpen, setIsTimeManagerOpen] = useState(false);
+  const [pickerState, setPickerState] = useState<{ isOpen: boolean; rowId: number | null }>({
+    isOpen: false,
+    rowId: null
+  });
+  const [resourcePickerState, setResourcePickerState] = useState<{ isOpen: boolean; rowId: number | null }>({
+    isOpen: false,
+    rowId: null
+  });
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState<ReportRow[]>([
-    { id: 1, teacher: '', time: '', class: '', activity: '', equipment: '', notes: '' },
+    { id: 1, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
   ]);
   const [labNotes, setLabNotes] = useState('');
   const [supervisorNotes, setSupervisorNotes] = useState('');
@@ -103,6 +125,21 @@ export default function DailyReport() {
   }, []);
 
   useEffect(() => {
+    const q = query(getUserCollection('teachers'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        name: doc.data().name,
+        subject: doc.data().subject 
+      } as Teacher));
+      setTeachers(items);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'teachers');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'history' && auth.currentUser) {
       setIsLoadingHistory(true);
       const q = query(
@@ -141,16 +178,26 @@ export default function DailyReport() {
       
       if (!querySnapshot.empty) {
         const reportData = querySnapshot.docs[0].data();
-        setRows(reportData.rows || []);
+        const fetchedRows = (reportData.rows || []).map((row: any, i: number) => ({
+          id: i + 1,
+          teacher: row.teacher || '',
+          time: row.time || '',
+          class: row.class || '',
+          activityType: row.activityType || '',
+          activityTitle: row.activityTitle || row.activity || '',
+          equipment: row.equipment || '',
+          notes: row.notes || ''
+        }));
+        setRows(fetchedRows);
         setLabNotes(reportData.labNotes || '');
         setSupervisorNotes(reportData.supervisorNotes || '');
         setDirectorNotes(reportData.directorNotes || '');
       } else {
         // Reset to empty rows if no report found for this date
         setRows([
-          { id: 1, teacher: '', time: '', class: '', activity: '', equipment: '', notes: '' },
-          { id: 2, teacher: '', time: '', class: '', activity: '', equipment: '', notes: '' },
-          { id: 3, teacher: '', time: '', class: '', activity: '', equipment: '', notes: '' },
+          { id: 1, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+          { id: 2, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+          { id: 3, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
         ]);
         setLabNotes('');
         setSupervisorNotes('');
@@ -170,7 +217,7 @@ export default function DailyReport() {
 
   const addRow = () => {
     const newId = rows.length > 0 ? Math.max(...rows.map(r => r.id)) + 1 : 1;
-    setRows([...rows, { id: newId, teacher: '', time: '', class: '', activity: '', equipment: '', notes: '' }]);
+    setRows([...rows, { id: newId, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' }]);
   };
 
   const removeRow = (id: number) => {
@@ -214,7 +261,17 @@ export default function DailyReport() {
 
   const loadReport = (report: SavedReport) => {
     setDate(report.date);
-    setRows(report.rows.map((r, i) => ({ ...r, id: i + 1 })));
+    const fetchedRows = (report.rows || []).map((row: any, i: number) => ({
+      id: i + 1,
+      teacher: row.teacher || '',
+      time: row.time || '',
+      class: row.class || '',
+      activityType: row.activityType || '',
+      activityTitle: row.activityTitle || row.activity || '',
+      equipment: row.equipment || '',
+      notes: row.notes || ''
+    }));
+    setRows(fetchedRows);
     setLabNotes(report.labNotes || '');
     setSupervisorNotes(report.supervisorNotes || '');
     setDirectorNotes(report.directorNotes || '');
@@ -229,6 +286,30 @@ export default function DailyReport() {
 
   return (
     <div className="min-h-screen bg-surface-container-low/30 p-4 md:p-12 rtl pb-24 font-sans" dir="rtl">
+      <TimeSlotManager 
+        isOpen={isTimeManagerOpen} 
+        onClose={() => setIsTimeManagerOpen(false)} 
+      />
+      <ClassPicker 
+        isOpen={pickerState.isOpen}
+        onClose={() => setPickerState({ isOpen: false, rowId: null })}
+        onSelect={(className) => {
+          if (pickerState.rowId !== null) {
+            updateRow(pickerState.rowId, 'class', className);
+          }
+        }}
+        initialValue={pickerState.rowId !== null ? rows.find(r => r.id === pickerState.rowId)?.class : ''}
+      />
+      <ResourcePicker 
+        isOpen={resourcePickerState.isOpen}
+        onClose={() => setResourcePickerState({ isOpen: false, rowId: null })}
+        onSelect={(resources) => {
+          if (resourcePickerState.rowId !== null) {
+            updateRow(resourcePickerState.rowId, 'equipment', resources);
+          }
+        }}
+        initialValue={resourcePickerState.rowId !== null ? rows.find(r => r.id === resourcePickerState.rowId)?.equipment : ''}
+      />
       {/* Navigation & Tabs */}
       <div className="max-w-5xl mx-auto mb-10 no-print flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
@@ -263,6 +344,13 @@ export default function DailyReport() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsTimeManagerOpen(true)}
+            className="bg-white text-primary border-2 border-primary/10 px-6 py-4 rounded-full flex items-center gap-3 shadow-sm hover:border-primary/30 transition-all active:scale-95 font-black"
+          >
+            <Clock size={20} />
+            تعديل المواقيت
+          </button>
           <button 
             onClick={handleSave}
             disabled={isSaving || activeTab === 'history'}
@@ -348,44 +436,86 @@ export default function DailyReport() {
                     <tr key={row.id} className="hover:bg-primary/5 transition-colors group">
                       <td className="border-2 border-primary/20 p-4 text-center text-xs font-black text-primary/60">{index + 1}</td>
                       <td className="border-2 border-primary/20 p-2">
-                        <input 
-                          className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all" 
-                          type="text" 
+                        <select 
+                          className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all appearance-none" 
                           value={row.teacher}
                           onChange={(e) => updateRow(row.id, 'teacher', e.target.value)}
-                        />
+                        >
+                          <option value="">اختر الأستاذ...</option>
+                          {teachers.map(t => (
+                            <option key={t.id} value={t.name}>{t.name}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="border-2 border-primary/20 p-2">
                         <input 
                           className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all" 
                           type="text" 
+                          list="time-slots"
                           value={row.time}
                           onChange={(e) => updateRow(row.id, 'time', e.target.value)}
                         />
+                        <datalist id="time-slots">
+                          {timeSlots.map(slot => (
+                            <option key={slot} value={slot} />
+                          ))}
+                        </datalist>
                       </td>
                       <td className="border-2 border-primary/20 p-2">
                         <input 
-                          className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all" 
+                          className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all cursor-pointer" 
                           type="text" 
+                          readOnly
+                          placeholder="اضغط للاختيار..."
                           value={row.class}
-                          onChange={(e) => updateRow(row.id, 'class', e.target.value)}
+                          onClick={() => setPickerState({ isOpen: true, rowId: row.id })}
                         />
                       </td>
                       <td className="border-2 border-primary/20 p-2">
-                        <textarea 
-                          className="w-full border-none bg-transparent text-right text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 px-3 transition-all resize-none" 
-                          rows={2}
-                          value={row.activity}
-                          onChange={(e) => updateRow(row.id, 'activity', e.target.value)}
-                        />
+                        <div className="flex flex-col gap-2">
+                          <select 
+                            className="w-full border-none bg-surface-container-low/30 text-right text-[11px] font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 px-3 transition-all appearance-none"
+                            value={row.activityType}
+                            onChange={(e) => updateRow(row.id, 'activityType', e.target.value)}
+                          >
+                            <option value="">— نوع النشاط —</option>
+                            <option value="عملي">نشاط عملي</option>
+                            <option value="محاكاة">نشاط بالمحاكاة</option>
+                            <option value="EXAO">نشاط محوسب EXAO</option>
+                            <option value="افتراضي">نشاط افتراضي</option>
+                          </select>
+                          <input 
+                            type="text"
+                            className="w-full border-none bg-transparent text-right text-[11px] font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 px-3 transition-all"
+                            placeholder="عنوان النشاط..."
+                            value={row.activityTitle}
+                            onChange={(e) => updateRow(row.id, 'activityTitle', e.target.value)}
+                          />
+                        </div>
                       </td>
                       <td className="border-2 border-primary/20 p-2">
-                        <textarea 
-                          className="w-full border-none bg-transparent text-right text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 px-3 transition-all resize-none" 
-                          rows={2}
-                          value={row.equipment}
-                          onChange={(e) => updateRow(row.id, 'equipment', e.target.value)}
-                        />
+                        <div className="relative group/resources">
+                          <div 
+                            onClick={() => setResourcePickerState({ isOpen: true, rowId: row.id })}
+                            className={cn(
+                              "w-full min-h-[60px] bg-surface-container-low/30 rounded-xl p-3 text-right text-[11px] font-bold cursor-pointer hover:bg-surface-container-low/50 transition-all border-2 border-transparent",
+                              !row.equipment && "flex items-center justify-center italic text-on-surface/30"
+                            )}
+                          >
+                            {row.equipment ? (
+                              <span className="text-primary">{row.equipment}</span>
+                            ) : (
+                              "اختر الوسائل والمواد..."
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => setResourcePickerState({ isOpen: true, rowId: row.id })}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-primary/10 text-primary rounded-lg opacity-0 group-hover/resources:opacity-100 transition-all hover:bg-primary hover:text-on-primary"
+                            title="اختيار الوسائل والمواد"
+                          >
+                            <Boxes size={14} />
+                          </button>
+                        </div>
                       </td>
                       <td className="border-2 border-primary/20 p-2">
                         <input 
