@@ -14,6 +14,7 @@ import ResourcePicker from '../components/ResourcePicker';
 interface ReportRow {
   id: number;
   teacher: string;
+  teacherSubject?: string;
   time: string;
   class: string;
   activityType: string;
@@ -26,6 +27,7 @@ interface Teacher {
   id: string;
   name: string;
   subject: string;
+  rank?: string;
 }
 
 interface InstitutionSettings {
@@ -62,7 +64,7 @@ export default function DailyReport() {
   const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [rows, setRows] = useState<ReportRow[]>([
-    { id: 1, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+    { id: 1, teacher: '', teacherSubject: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
   ]);
   const [labNotes, setLabNotes] = useState('');
   const [supervisorNotes, setSupervisorNotes] = useState('');
@@ -130,7 +132,8 @@ export default function DailyReport() {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 
         name: doc.data().name,
-        subject: doc.data().subject 
+        subject: doc.data().subject,
+        rank: doc.data().rank
       } as Teacher));
       setTeachers(items);
     }, (error) => {
@@ -181,6 +184,7 @@ export default function DailyReport() {
         const fetchedRows = (reportData.rows || []).map((row: any, i: number) => ({
           id: i + 1,
           teacher: row.teacher || '',
+          teacherSubject: row.teacherSubject || '',
           time: row.time || '',
           class: row.class || '',
           activityType: row.activityType || '',
@@ -195,9 +199,9 @@ export default function DailyReport() {
       } else {
         // Reset to empty rows if no report found for this date
         setRows([
-          { id: 1, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
-          { id: 2, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
-          { id: 3, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+          { id: 1, teacher: '', teacherSubject: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+          { id: 2, teacher: '', teacherSubject: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
+          { id: 3, teacher: '', teacherSubject: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' },
         ]);
         setLabNotes('');
         setSupervisorNotes('');
@@ -217,7 +221,7 @@ export default function DailyReport() {
 
   const addRow = () => {
     const newId = rows.length > 0 ? Math.max(...rows.map(r => r.id)) + 1 : 1;
-    setRows([...rows, { id: newId, teacher: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' }]);
+    setRows([...rows, { id: newId, teacher: '', teacherSubject: '', time: '', class: '', activityType: '', activityTitle: '', equipment: '', notes: '' }]);
   };
 
   const removeRow = (id: number) => {
@@ -264,6 +268,7 @@ export default function DailyReport() {
     const fetchedRows = (report.rows || []).map((row: any, i: number) => ({
       id: i + 1,
       teacher: row.teacher || '',
+      teacherSubject: row.teacherSubject || '',
       time: row.time || '',
       class: row.class || '',
       activityType: row.activityType || '',
@@ -436,16 +441,37 @@ export default function DailyReport() {
                     <tr key={row.id} className="hover:bg-primary/5 transition-colors group">
                       <td className="border-2 border-primary/20 p-4 text-center text-xs font-black text-primary/60">{index + 1}</td>
                       <td className="border-2 border-primary/20 p-2">
-                        <select 
-                          className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-2 transition-all appearance-none" 
-                          value={row.teacher}
-                          onChange={(e) => updateRow(row.id, 'teacher', e.target.value)}
-                        >
-                          <option value="">اختر الأستاذ...</option>
-                          {teachers.map(t => (
-                            <option key={t.id} value={t.name}>{t.name}</option>
-                          ))}
-                        </select>
+                        <div className="flex flex-col items-center gap-1">
+                          <select 
+                            className="w-full border-none bg-transparent text-center text-xs font-bold outline-none focus:bg-surface-container-low/50 rounded-lg py-1 transition-all appearance-none" 
+                            value={row.teacher}
+                            onChange={(e) => {
+                              const selectedTeacher = teachers.find(t => t.name === e.target.value);
+                              setRows(rows.map(r => r.id === row.id ? { 
+                                ...r, 
+                                teacher: e.target.value,
+                                teacherSubject: selectedTeacher?.subject || ''
+                              } : r));
+                            }}
+                          >
+                            <option value="">اختر الأستاذ...</option>
+                            {teachers
+                              .filter(t => {
+                                // Filter out non-teachers: must have a subject and rank should not be 'مخبري' or similar
+                                const isTeacher = t.subject && t.subject !== 'غير محدد' && t.subject.trim() !== '';
+                                const isNotStaff = !t.rank || (!t.rank.includes('مخبري') && !t.rank.includes('عامل'));
+                                return isTeacher && isNotStaff;
+                              })
+                              .map(t => (
+                                <option key={t.id} value={t.name}>{t.name}</option>
+                              ))}
+                          </select>
+                          {row.teacherSubject && (
+                            <span className="text-[10px] font-black text-primary/40 bg-primary/5 px-2 py-0.5 rounded-full">
+                              {row.teacherSubject}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="border-2 border-primary/20 p-2">
                         <input 
