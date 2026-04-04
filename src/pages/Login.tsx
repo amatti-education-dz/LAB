@@ -597,46 +597,46 @@ export default function Login() {
       </section>
 
       {/* Right Panel: Auth Form (40%) */}
-      <main className="w-full lg:w-2/5 bg-surface-container-low relative flex flex-col items-center justify-center p-8 lg:p-24 overflow-y-auto">
+      <main className="w-full lg:w-2/5 bg-surface-container-low relative flex flex-col items-center justify-center p-6 md:p-12 lg:p-16 overflow-y-auto">
         {/* Decorative Blobs */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px] -ml-40 -mb-40"></div>
         
         <div className="w-full max-w-md relative z-10">
-          <div className="text-center mb-12">
+          <div className="text-center mb-6 md:mb-8">
             {isInAppBrowser && (
-              <div className="mb-6 p-4 bg-primary/10 rounded-2xl border border-primary/20 text-right">
-                <p className="text-xs font-black text-primary mb-2 flex items-center gap-2">
-                  <Globe size={14} /> تنبيه لمستخدمي فيسبوك/إنستغرام
+              <div className="mb-4 p-3 bg-primary/10 rounded-2xl border border-primary/20 text-right">
+                <p className="text-[10px] font-black text-primary mb-1 flex items-center gap-2">
+                  <Globe size={12} /> تنبيه لمستخدمي فيسبوك/إنستغرام
                 </p>
-                <p className="text-[10px] text-on-surface/70 leading-relaxed mb-3">
+                <p className="text-[9px] text-on-surface/70 leading-relaxed mb-2">
                   لتجنب مشاكل تسجيل الدخول، يفضل فتح الموقع في متصفح خارجي أو استخدام الرابط المباشر.
                 </p>
                 <button 
                   onClick={() => window.location.href = "https://amatti-education-dz.firebaseapp.com/LAB"}
-                  className="w-full bg-primary text-on-primary py-2 rounded-lg text-[10px] font-black"
+                  className="w-full bg-primary text-on-primary py-1.5 rounded-lg text-[9px] font-black"
                 >
                   فتح الرابط المباشر المستقر
                 </button>
               </div>
             )}
-            <div className="inline-block p-2 bg-white rounded-[40px] mb-8 shadow-xl border border-outline/10">
+            <div className="inline-block p-1.5 bg-white rounded-[32px] mb-4 md:mb-6 shadow-xl border border-outline/10">
               <img 
-                className="w-28 h-28 rounded-[32px] object-contain p-2" 
+                className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] object-contain p-1.5" 
                 src="https://upload.wikimedia.org/wikipedia/commons/d/d8/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9_%D8%A7%D9%84%D8%AA%D8%B1%D8%A8%D9%8A%D8%A9_%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A%D8%A9.svg" 
                 alt="Logo" 
                 referrerPolicy="no-referrer" 
               />
             </div>
-            <h3 className="text-3xl font-black text-primary mb-2 font-serif tracking-tight">وزارة التربية الوطنية</h3>
-            <p className="text-on-surface/60 font-bold text-lg">نظام تسيير المخابر العلمية</p>
-            <div className="mt-6 inline-flex items-center px-5 py-2 bg-primary/10 rounded-full text-primary text-xs font-black uppercase tracking-widest">
-              {isLogin ? <LockIcon size={14} className="ml-2" /> : <UserPlus size={14} className="ml-2" />}
+            <h3 className="text-xl md:text-2xl font-black text-primary mb-1 font-serif tracking-tight">وزارة التربية الوطنية</h3>
+            <p className="text-on-surface/60 font-bold text-sm md:text-base">نظام تسيير المخابر العلمية</p>
+            <div className="mt-3 inline-flex items-center px-4 py-1.5 bg-primary/10 rounded-full text-primary text-[10px] font-black uppercase tracking-widest">
+              {isLogin ? <LockIcon size={12} className="ml-1.5" /> : <UserPlus size={12} className="ml-1.5" />}
               {isLogin ? 'دخول الموظفين فقط' : 'إنشاء حساب جديد'}
             </div>
           </div>
 
-          <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-2xl mb-8 border border-outline/10">
+          <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-2xl mb-6 border border-outline/10">
             <button
               onClick={() => { setAuthMethod('email'); setConfirmationResult(null); setError(''); }}
               className={cn(
@@ -666,14 +666,14 @@ export default function Login() {
                 <p className="text-on-surface/60 text-sm">أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة التعيين.</p>
                 <p className="text-[10px] text-error font-bold mt-2 italic">ملاحظة: إذا لم تجد الرسالة، يرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam).</p>
               </div>
-              <div className="space-y-3">
-                <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="reset-email">البريد الإلكتروني</label>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="reset-email">البريد الإلكتروني</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                    <User size={22} />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                    <User size={20} />
                   </div>
                   <input 
-                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-6 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-5 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                     id="reset-email" 
                     type="email" 
                     placeholder="name@institution.dz"
@@ -696,7 +696,7 @@ export default function Login() {
               <div className="flex flex-col gap-4">
                 <button 
                   disabled={loading}
-                  className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-5 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-lg disabled:opacity-50" 
+                  className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-4 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-base disabled:opacity-50" 
                   type="submit"
                 >
                   <span>{loading ? 'جاري الإرسال...' : 'إرسال رابط التعيين'}</span>
@@ -711,15 +711,15 @@ export default function Login() {
               </div>
             </form>
           ) : authMethod === 'email' ? (
-            <form onSubmit={handleAuth} className="space-y-6">
-              <div className="space-y-3">
-                <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="email">البريد الإلكتروني</label>
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="email">البريد الإلكتروني</label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                    <User size={22} />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                    <User size={20} />
                   </div>
                   <input 
-                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-6 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-5 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                     id="email" 
                     type="email" 
                     placeholder="name@institution.dz"
@@ -730,25 +730,25 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center mr-2">
-                  <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest" htmlFor="password">كلمة المرور</label>
+                  <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest" htmlFor="password">كلمة المرور</label>
                   {isLogin && (
                     <button 
                       type="button"
                       onClick={() => setIsResetting(true)}
-                      className="text-xs text-primary font-black hover:underline"
+                      className="text-[10px] text-primary font-black hover:underline"
                     >
                       نسيت كلمة المرور؟
                     </button>
                   )}
                 </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                    <LockIcon size={22} />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                    <LockIcon size={20} />
                   </div>
                   <input 
-                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-14 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                    className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-12 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                     id="password" 
                     type="password" 
                     placeholder="••••••••"
@@ -756,21 +756,21 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-5 cursor-pointer text-on-surface/30 hover:text-primary transition-colors">
-                    <Eye size={22} />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 cursor-pointer text-on-surface/30 hover:text-primary transition-colors">
+                    <Eye size={20} />
                   </div>
                 </div>
               </div>
 
               {!isLogin && (
-                <div className="space-y-3">
-                  <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="confirmPassword">تأكيد كلمة المرور</label>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="confirmPassword">تأكيد كلمة المرور</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                      <ShieldCheck size={22} />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                      <ShieldCheck size={20} />
                     </div>
                     <input 
-                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-14 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-12 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                       id="confirmPassword" 
                       type="password" 
                       placeholder="••••••••"
@@ -783,33 +783,33 @@ export default function Login() {
               )}
 
               {error && (
-                <div className="bg-error/10 text-error text-xs font-black p-4 rounded-2xl text-center border border-error/20 animate-shake">
+                <div className="bg-error/10 text-error text-[10px] font-black p-3 rounded-2xl text-center border border-error/20 animate-shake">
                   {error}
                 </div>
               )}
 
               <button 
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-5 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-lg disabled:opacity-50 disabled:active:scale-100" 
+                className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-4 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-base disabled:opacity-50 disabled:active:scale-100" 
                 type="submit"
               >
                 <span>{loading ? 'جاري التحميل...' : (isLogin ? 'دخول إلى النظام' : 'إنشاء الحساب')}</span>
-                <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={24} />
+                <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={20} />
               </button>
             </form>
           ) : (
-            <form onSubmit={handlePhoneAuth} className="space-y-6">
+            <form onSubmit={handlePhoneAuth} className="space-y-4">
               <div id="recaptcha-container"></div>
               
               {!confirmationResult ? (
-                <div className="space-y-3">
-                  <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="phone">رقم الهاتف</label>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="phone">رقم الهاتف</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                      <Phone size={22} />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                      <Phone size={20} />
                     </div>
                     <input 
-                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-6 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-5 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                       id="phone" 
                       type="tel" 
                       placeholder="0661234567"
@@ -818,17 +818,17 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <p className="text-[10px] text-on-surface/40 mr-2 font-bold italic">يمكنك إدخال الرقم بصيغة 0661234567 أو الصيغة الدولية +213661234567</p>
+                  <p className="text-[9px] text-on-surface/40 mr-2 font-bold italic">يمكنك إدخال الرقم بصيغة 0661234567 أو الصيغة الدولية +213661234567</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <label className="block text-xs font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="code">رمز التحقق</label>
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface/40 uppercase tracking-widest mr-2" htmlFor="code">رمز التحقق</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
-                      <MessageSquare size={22} />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-on-surface/30 group-focus-within:text-primary transition-colors">
+                      <MessageSquare size={20} />
                     </div>
                     <input 
-                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[24px] py-5 pr-14 pl-6 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none"
+                      className="w-full bg-white border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-[20px] py-3.5 pr-12 pl-5 text-on-surface font-bold placeholder-on-surface/20 shadow-sm focus:shadow-xl transition-all outline-none text-sm"
                       id="code" 
                       type="text" 
                       placeholder="123456"
@@ -837,24 +837,24 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <div className="flex flex-col gap-2 px-2">
+                  <div className="flex flex-col gap-1 px-2">
                     <div className="flex justify-between items-center">
-                      <p className="text-[10px] text-on-surface/40 font-bold">تم إرسال الرمز إلى {phoneNumber}</p>
+                      <p className="text-[9px] text-on-surface/40 font-bold">تم إرسال الرمز إلى {phoneNumber}</p>
                       <button 
                         type="button" 
                         onClick={() => { setConfirmationResult(null); setResendTimer(0); setCanResend(true); }}
-                        className="text-[10px] text-primary font-black hover:underline"
+                        className="text-[9px] text-primary font-black hover:underline"
                       >
                         تغيير الرقم؟
                       </button>
                     </div>
-                    <div className="flex justify-center mt-2">
+                    <div className="flex justify-center mt-1">
                       <button
                         type="button"
                         disabled={!canResend || loading}
                         onClick={handleResendCode}
                         className={cn(
-                          "text-xs font-black transition-all",
+                          "text-[10px] font-black transition-all",
                           canResend ? "text-primary hover:underline" : "text-on-surface/30 cursor-not-allowed"
                         )}
                       >
@@ -866,53 +866,53 @@ export default function Login() {
               )}
 
               {error && (
-                <div className="bg-error/10 text-error text-xs font-black p-4 rounded-2xl text-center border border-error/20 animate-shake">
+                <div className="bg-error/10 text-error text-[10px] font-black p-3 rounded-2xl text-center border border-error/20 animate-shake">
                   {error}
                 </div>
               )}
 
               <button 
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-5 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-lg disabled:opacity-50 disabled:active:scale-100" 
+                className="w-full bg-primary hover:bg-primary-container text-on-primary font-black py-4 rounded-full shadow-2xl shadow-primary/20 transform active:scale-95 transition-all flex items-center justify-center gap-3 group text-base disabled:opacity-50 disabled:active:scale-100" 
                 type="submit"
               >
                 <span>{loading ? 'جاري التحميل...' : (!confirmationResult ? 'إرسال رمز التحقق' : 'تأكيد الرمز والدخول')}</span>
-                <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={24} />
+                <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={20} />
               </button>
             </form>
           )}
 
-          <div className="text-center mt-4">
+          <div className="text-center mt-2">
             <button 
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm font-bold text-on-surface/60 hover:text-primary transition-colors"
+              className="text-xs font-bold text-on-surface/60 hover:text-primary transition-colors"
             >
               {isLogin ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول'}
             </button>
           </div>
 
-          <div className="relative flex items-center justify-center py-2">
+          <div className="relative flex items-center justify-center py-1">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-outline/10"></div></div>
-            <span className="relative px-4 bg-surface-container-low text-[10px] font-black text-on-surface/30 uppercase tracking-[0.3em]">أو</span>
+            <span className="relative px-4 bg-surface-container-low text-[9px] font-black text-on-surface/30 uppercase tracking-[0.3em]">أو</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button 
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full bg-white border-2 border-outline/10 hover:border-primary/30 text-on-surface font-black py-4 rounded-full transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow-md active:scale-95"
+              className="w-full bg-white border-2 border-outline/10 hover:border-primary/30 text-on-surface font-black py-3 rounded-full transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow-md active:scale-95 text-xs"
             >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 ml-2" alt="Google" />
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 ml-1" alt="Google" />
               {isLogin ? 'جوجل' : 'جوجل'}
             </button>
 
             <button 
               type="button"
               onClick={handleFacebookLogin}
-              className="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-black py-4 rounded-full transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow-md active:scale-95"
+              className="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white font-black py-3 rounded-full transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow-md active:scale-95 text-xs"
             >
-              <Facebook size={20} className="ml-2" />
+              <Facebook size={18} className="ml-1" />
               {isLogin ? 'فيسبوك' : 'فيسبوك'}
             </button>
           </div>
