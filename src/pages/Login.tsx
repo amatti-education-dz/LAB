@@ -647,15 +647,16 @@ export default function Login() {
               </div>
             )}
             <div className="inline-block p-1.5 bg-white rounded-[32px] mb-4 md:mb-6 shadow-xl border border-outline/10">
-              <img 
-                className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] object-contain p-1.5" 
-                src="https://upload.wikimedia.org/wikipedia/commons/d/d8/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9_%D8%A7%D9%84%D8%AA%D8%B1%D8%A8%D9%8A%D8%A9_%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A%D8%A9.svg" 
-                alt="Logo" 
-                referrerPolicy="no-referrer" 
-              />
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] bg-primary flex items-center justify-center text-on-primary shadow-inner">
+                <Beaker size={40} className="md:size-12" />
+              </div>
             </div>
-            <h3 className="text-xl md:text-2xl font-black text-primary mb-1 font-serif tracking-tight">وزارة التربية الوطنية</h3>
-            <p className="text-on-surface/60 font-bold text-sm md:text-base">نظام تسيير المخابر العلمية</p>
+            <h3 className="text-xl md:text-2xl font-black text-primary mb-1 font-serif tracking-tight">الأرضية الرقمية — فضاء موظفوا المخابر</h3>
+            <p className="text-on-surface/60 font-bold text-sm md:text-base">نظام تسيير المخابر العلمية — فضاء الموظفين</p>
+            <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 text-right text-xs leading-relaxed text-on-surface/70">
+              <p className="font-black text-primary mb-1">عن المنصة:</p>
+              نظام رقمي متكامل مصمم خصيصاً لتسيير المخابر العلمية في المؤسسات التربوية الجزائرية (متوسط وثانوي). يهدف النظام إلى رقمنة السجلات، متابعة الجرد، وتسهيل العمل البيداغوجي لموظفي المخابر.
+            </div>
             <div className="mt-3 inline-flex items-center px-4 py-1.5 bg-primary/10 rounded-full text-primary text-[10px] font-black uppercase tracking-widest">
               {isLogin ? <LockIcon size={12} className="ml-1.5" /> : <UserPlus size={12} className="ml-1.5" />}
               {isLogin ? 'دخول الموظفين فقط' : 'إنشاء حساب جديد'}
@@ -952,6 +953,11 @@ export default function Login() {
               <Facebook size={18} className="ml-1" />
               {isLogin ? 'فيسبوك' : 'فيسبوك'}
             </button>
+          </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-black text-on-surface/40 uppercase tracking-widest">
+            <Link className="hover:text-primary transition-colors" to="/privacy-policy">سياسة الخصوصية</Link>
+            <Link className="hover:text-primary transition-colors" to="/terms-of-service">شروط الخدمة</Link>
+            <Link className="hover:text-primary transition-colors" to="/data-deletion">حذف البيانات</Link>
           </div>
         </div>
       </main>
