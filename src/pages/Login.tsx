@@ -969,10 +969,10 @@ export default function Login() {
               {isLogin ? 'فيسبوك' : 'فيسبوك'}
             </button>
           </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-black text-on-surface/40 uppercase tracking-widest">
-            <Link className="hover:text-primary transition-colors" to="/privacy-policy">سياسة الخصوصية</Link>
-            <Link className="hover:text-primary transition-colors" to="/terms-of-service">شروط الخدمة</Link>
-            <Link className="hover:text-primary transition-colors" to="/data-deletion">حذف البيانات</Link>
+          <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm font-bold text-on-surface/60 border-t border-outline/10 pt-8 w-full max-w-md mx-auto">
+            <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/privacy-policy">سياسة الخصوصية</Link>
+            <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/terms-of-service">شروط الخدمة</Link>
+            <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/data-deletion">حذف البيانات</Link>
           </div>
         </div>
       </main>
