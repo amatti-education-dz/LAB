@@ -30,6 +30,7 @@ import ChemicalWaste from './pages/ChemicalWaste';
 import EducationalMap from './pages/EducationalMap';
 import ConsumablesSDS from './pages/ConsumablesSDS';
 import BackupCenter from './pages/BackupCenter';
+import DatabaseManagement from './pages/DatabaseManagement';
 import Timetable from './pages/Timetable';
 import LabSchedule from './pages/LabSchedule';
 import PedagogicalTracking from './pages/PedagogicalTracking';
@@ -89,6 +90,7 @@ export default function App() {
             <Route path="educational-map" element={<EducationalMap />} />
             <Route path="consumables-sds" element={<ConsumablesSDS />} />
             <Route path="backup" element={<BackupCenter />} />
+            <Route path="database-management" element={<DatabaseManagement />} />
             <Route path="timetable" element={<Timetable />} />
             <Route path="lab-schedule" element={<LabSchedule />} />
             <Route path="pedagogical-tracking" element={<PedagogicalTracking />} />

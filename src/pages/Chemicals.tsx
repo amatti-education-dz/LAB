@@ -52,15 +52,27 @@ interface Chemical {
 }
 
 const GHS_ICONS: Record<string, string> = {
-  'GHS01': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/GHS-pictogram-explos.svg/100px-GHS-pictogram-explos.svg.png',
-  'GHS02': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/GHS-pictogram-flamme.svg/100px-GHS-pictogram-flamme.svg.png',
-  'GHS03': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/GHS-pictogram-rondflam.svg/100px-GHS-pictogram-rondflam.svg.png',
-  'GHS04': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/GHS-pictogram-bottle.svg/100px-GHS-pictogram-bottle.svg.png',
-  'GHS05': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/GHS-pictogram-acid.svg/100px-GHS-pictogram-acid.svg.png',
-  'GHS06': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/GHS-pictogram-skull.svg/100px-GHS-pictogram-skull.svg.png',
-  'GHS07': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/GHS-pictogram-exclam.svg/100px-GHS-pictogram-exclam.svg.png',
-  'GHS08': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/GHS-pictogram-silhouette.svg/100px-GHS-pictogram-silhouette.svg.png',
-  'GHS09': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/GHS-pictogram-pollut.svg/100px-GHS-pictogram-pollut.svg.png',
+  'GHS01': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/GHS-pictogram-explos.svg/200px-GHS-pictogram-explos.svg.png',
+  'GHS02': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/GHS-pictogram-flamme.svg/200px-GHS-pictogram-flamme.svg.png',
+  'GHS03': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/GHS-pictogram-rondflam.svg/200px-GHS-pictogram-rondflam.svg.png',
+  'GHS04': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/GHS-pictogram-bottle.svg/200px-GHS-pictogram-bottle.svg.png',
+  'GHS05': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/GHS-pictogram-acid.svg/200px-GHS-pictogram-acid.svg.png',
+  'GHS06': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/GHS-pictogram-skull.svg/200px-GHS-pictogram-skull.svg.png',
+  'GHS07': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/GHS-pictogram-exclam.svg/200px-GHS-pictogram-exclam.svg.png',
+  'GHS08': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/GHS-pictogram-silhouette.svg/200px-GHS-pictogram-silhouette.svg.png',
+  'GHS09': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/GHS-pictogram-pollut.svg/200px-GHS-pictogram-pollut.svg.png',
+};
+
+const GHS_LABELS: Record<string, string> = {
+  'GHS01': 'متفجرات',
+  'GHS02': 'قابل للاشتعال',
+  'GHS03': 'مؤكسد',
+  'GHS04': 'غاز تحت الضغط',
+  'GHS05': 'أكال / مسبب للتآكل',
+  'GHS06': 'سمية حادة (قاتل)',
+  'GHS07': 'تهيج / تحسس / خطر',
+  'GHS08': 'خطر صحي جسيم',
+  'GHS09': 'خطر بيئي',
 };
 
 export default function Chemicals({ isNested = false }: { isNested?: boolean }) {
@@ -350,7 +362,10 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
     const tableRows = sortedChemicals.map((c, index) => {
       const isHazardous = (c.ghs && c.ghs.length > 0) || c.hazardClass === 'danger';
       const ghsIcons = (c.ghs || []).map(code => 
-        `<img src="${GHS_ICONS[code]}" style="height: 24px; width: 24px; margin: 0 2px;" alt="${code}" />`
+        `<div style="display: inline-flex; flex-direction: column; align-items: center; margin: 2px; border: 1px solid #ddd; padding: 2px; border-radius: 4px; background: white;">
+          <img src="${GHS_ICONS[code]}" style="height: 28px; width: 28px;" alt="${code}" />
+          <span style="font-size: 7px; font-weight: bold; margin-top: 1px;">${GHS_LABELS[code] || code}</span>
+        </div>`
       ).join('');
 
       return `
@@ -729,7 +744,17 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
             <div class="item"><span class="label">الكمية الحالية:</span> ${c.quantity} ${c.unit}</div>
             <div class="item"><span class="label">الرف:</span> ${c.shelf}</div>
             <div class="item"><span class="label">الصلاحية:</span> ${c.expiryDate || 'غير محدد'}</div>
-            <div class="item"><span class="label">GHS:</span> ${c.ghs?.join(', ')}</div>
+            <div class="item" style="grid-column: span 2;">
+              <span class="label">رموز السلامة GHS:</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                ${(c.ghs || []).map(code => `
+                  <div style="display: flex; flex-direction: column; align-items: center; border: 1px solid #ccc; padding: 5px; border-radius: 8px; width: 70px; background: #fff;">
+                    <img src="${GHS_ICONS[code]}" style="width: 40px; height: 40px;" />
+                    <span style="font-size: 9px; margin-top: 4px; text-align: center; font-weight: bold;">${GHS_LABELS[code] || code}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
             <div class="item"><span class="label">تصنيف الخطورة:</span> <span class="${c.hazardClass === 'danger' ? 'hazard' : ''}">${c.hazardClass === 'danger' ? 'خطر' : 'آمن'}</span></div>
             <div class="item" style="grid-column: span 2;"><span class="label">ملاحظات:</span> ${c.notes || 'لا توجد'}</div>
           </div>
@@ -1062,17 +1087,24 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
                           </span>
                         </td>
                         <td className="px-3 py-4 hidden xl:table-cell">
-                          <div className="flex gap-1">
+                          <div className="flex gap-1.5">
                             {c.ghs?.slice(0, 3).map((g, i) => (
-                              <div key={i} className="w-8 h-8 bg-white rounded-md flex items-center justify-center border border-outline/10 p-0.5 shadow-sm" title={g}>
+                              <div 
+                                key={i} 
+                                className="w-9 h-9 bg-white rounded-lg flex items-center justify-center border border-outline/20 p-1 shadow-sm hover:scale-125 transition-transform z-10 relative group/ghs" 
+                                title={GHS_LABELS[g] || g}
+                              >
                                 {GHS_ICONS[g] ? (
                                   <img src={GHS_ICONS[g]} alt={g} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                                 ) : (
                                   <span className="text-[8px] font-black">{g}</span>
                                 )}
+                                <div className="absolute bottom-full mb-2 hidden group-hover/ghs:block bg-secondary text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none shadow-xl">
+                                  {GHS_LABELS[g] || g}
+                                </div>
                               </div>
                             ))}
-                            {c.ghs && c.ghs.length > 3 && <span className="text-[10px] text-secondary/40 self-center">+{c.ghs.length - 3}</span>}
+                            {c.ghs && c.ghs.length > 3 && <span className="text-[10px] text-secondary/40 self-center font-bold">+{c.ghs.length - 3}</span>}
                           </div>
                         </td>
                         <td className="px-3 py-4 font-bold text-primary hidden md:table-cell text-xs">{c.shelf}</td>
@@ -1209,16 +1241,24 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
                   </div>
 
                   {selectedChemical.ghs && selectedChemical.ghs.length > 0 && (
-                    <div className="pt-4 border-t border-outline/5">
+                    <div className="pt-6 border-t border-outline/5">
                       <span className="text-[11px] font-black text-secondary/40 uppercase tracking-[0.2em] block mb-4">رموز السلامة GHS</span>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="grid grid-cols-3 gap-4">
                         {selectedChemical.ghs.map((g, i) => (
-                          <div key={i} className="bg-white p-2 rounded-xl border border-outline/10 shadow-sm hover:scale-110 transition-transform cursor-help" title={g}>
-                            {GHS_ICONS[g] ? (
-                              <img src={GHS_ICONS[g]} alt={g} className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="w-12 h-12 flex items-center justify-center text-[10px] font-black bg-surface-container-high rounded-lg">{g}</div>
-                            )}
+                          <div 
+                            key={i} 
+                            className="bg-white p-3 rounded-2xl border border-outline/10 shadow-md hover:shadow-lg hover:border-primary/30 transition-all flex flex-col items-center gap-2 group/card"
+                          >
+                            <div className="w-16 h-16 flex items-center justify-center group-hover/card:scale-110 transition-transform">
+                              {GHS_ICONS[g] ? (
+                                <img src={GHS_ICONS[g]} alt={g} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs font-black bg-surface-container-high rounded-xl">{g}</div>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-black text-secondary text-center leading-tight">
+                              {GHS_LABELS[g] || g}
+                            </span>
                           </div>
                         ))}
                       </div>

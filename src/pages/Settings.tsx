@@ -26,9 +26,11 @@ import {
   Facebook,
   Chrome,
   AlertCircle,
-  Clock
+  Clock,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { auth, db, storage, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
   updateProfile, 
@@ -666,6 +668,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: 'profile', name: 'الملف الشخصي', icon: User },
     { id: 'institution', name: 'المؤسسة والتعليم', icon: School },
+    { id: 'database', name: 'إدارة البيانات', icon: Database },
     { id: 'system', name: 'النظام والأمان', icon: Shield },
   ];
 
@@ -1207,6 +1210,88 @@ export default function SettingsPage() {
                         تظهر هذه المواقيت كقائمة منسدلة (Datalist) عند إدخال الوقت في التقارير اليومية وسجل استعمال الوسائل، مما يسهل عملية الإدخال السريع مع الحفاظ على إمكانية كتابة توقيت مخصص يدوياً.
                       </p>
                     </div>
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeTab === 'database' && (
+              <div className="space-y-12">
+                <section>
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black text-[#2b3d22] flex items-center gap-3">
+                      <Database className="text-[#5c6146]" />
+                      إدارة قاعدة البيانات
+                    </h3>
+                    <Link 
+                      to="/database-management"
+                      className="text-sm font-bold text-primary hover:underline flex items-center gap-2"
+                    >
+                      <Settings size={14} />
+                      فتح لوحة التحكم الكاملة
+                    </Link>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-[#fcf9f3] p-8 rounded-[32px] border border-[#c4c8bd]/30 space-y-4">
+                      <h4 className="font-black text-[#2b3d22] flex items-center gap-2">
+                        <History size={18} />
+                        النسخ الاحتياطي
+                      </h4>
+                      <p className="text-sm text-[#5c6146] font-bold leading-relaxed">
+                        قم بحماية بياناتك من خلال إنشاء نسخ احتياطية دورية. يمكنك تحميل قاعدة البيانات بالكامل بصيغة JSON.
+                      </p>
+                      <div className="pt-4 flex gap-3">
+                        <Link to="/backup" className="flex-1 bg-[#2b3d22] text-white py-3 rounded-xl font-bold text-center hover:opacity-90 transition-all">
+                          مركز النسخ
+                        </Link>
+                        <button 
+                          onClick={() => {
+                            window.location.hash = '#/database-management';
+                          }}
+                          className="flex-1 bg-white border border-[#c4c8bd]/50 text-[#2b3d22] py-3 rounded-xl font-bold hover:bg-[#fcf9f3] transition-all"
+                        >
+                          تصدير سريع
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#fcf9f3] p-8 rounded-[32px] border border-[#c4c8bd]/30 space-y-4">
+                      <h4 className="font-black text-[#2b3d22] flex items-center gap-2">
+                        <CloudUpload size={18} />
+                        استيراد البيانات
+                      </h4>
+                      <p className="text-sm text-[#5c6146] font-bold leading-relaxed">
+                        هل لديك بيانات سابقة في ملف Excel؟ يمكنك استيراد المواد الكيميائية، الأجهزة، والأساتذة دفعة واحدة.
+                      </p>
+                      <div className="pt-4">
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full bg-[#e1e6c3] text-[#2b3d22] py-3 rounded-xl font-bold hover:bg-[#2b3d22] hover:text-white transition-all"
+                        >
+                          اختيار ملف Excel (.xlsx)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="pt-12 border-t border-[#c4c8bd]/20">
+                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
+                    <ShieldAlert size={24} className="text-red-600" />
+                    صيانة البيانات
+                  </h3>
+                  <div className="bg-red-50 p-8 rounded-[32px] border border-red-100 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-right">
+                      <h4 className="text-lg font-black text-red-700 mb-1">تفريغ قاعدة البيانات</h4>
+                      <p className="text-sm text-red-600/70 font-bold">حذف جميع السجلات والمواد المسجلة بشكل نهائي.</p>
+                    </div>
+                    <Link 
+                      to="/database-management"
+                      className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black shadow-lg shadow-red-200 hover:bg-red-700 transition-all active:scale-95"
+                    >
+                      بدء عملية المسح
+                    </Link>
                   </div>
                 </section>
               </div>

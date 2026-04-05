@@ -30,7 +30,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  QrCode
+  QrCode,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -310,7 +311,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
 
     const tableRows = filteredEquipment.map((e, index) => `
       <tr>
-        <td style="text-align: center;">${index + 1}</td>
+        <td style="text-align: center;">${(index + 1).toString().padStart(2, '0')}</td>
         <td style="font-weight: 600;">${e.name}</td>
         <td style="text-align: center;">${e.type === 'glassware' ? 'زجاجيات' : e.type === 'tech' ? 'أجهزة تقنية' : 'أخرى'}</td>
         <td style="text-align: center; font-weight: 600;">${e.totalQuantity}</td>
@@ -336,15 +337,31 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
               color: #1a1a1a;
               line-height: 1.4;
             }
-            .header-center { text-align: center; margin-bottom: 20px; }
-            .header-center h2 { margin: 5px 0; font-size: 18px; text-decoration: underline; }
-            .header-center h3 { margin: 5px 0; font-size: 14px; }
+            .official-header {
+              display: flex;
+              justify-content: space-between;
+              border-bottom: 2px solid #000;
+              padding-bottom: 15px;
+              margin-bottom: 20px;
+            }
+            .header-right { text-align: right; font-size: 12px; font-weight: bold; }
+            .header-center { text-align: center; }
+            .header-center p { margin: 2px 0; font-weight: bold; }
+            .header-center .republic { font-size: 14px; font-weight: 900; }
+            .header-left { text-align: left; font-size: 12px; font-weight: bold; }
+            
+            .doc-title { 
+              text-align: center; 
+              font-size: 22px; 
+              font-weight: 900; 
+              text-decoration: underline;
+              margin: 20px 0;
+            }
             
             table { 
               width: 100%; 
               border-collapse: collapse; 
               font-size: 11px;
-              margin-top: 20px;
             }
             th, td { 
               border: 1px solid #000; 
@@ -367,11 +384,21 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
           </style>
         </head>
         <body>
-          <div class="header-center">
-            <h3>الجمهورية الجزائرية الديمقراطية الشعبية</h3>
-            <h3>وزارة التربية الوطنية</h3>
-            <h2>سجل جرد العتاد والزجاجيات المخبرية</h2>
+          <div class="official-header">
+            <div class="header-right">
+              <p>مديرية التربية لولاية: أم البواقي</p>
+              <p>ثانوية بوحازم عبد المجيد - عين كرشة</p>
+            </div>
+            <div class="header-center">
+              <p class="republic">الجمهورية الجزائرية الديمقراطية الشعبية</p>
+              <p>وزارة التربية الوطنية</p>
+            </div>
+            <div class="header-left">
+              <p>السنة الدراسية: 2025 - 2026</p>
+            </div>
           </div>
+
+          <h2 class="doc-title">سجل جرد العتاد والزجاجيات المخبرية</h2>
           
           <table>
             <thead>
@@ -582,12 +609,31 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
       return 0;
     });
 
-  const totalPieces = equipment.reduce((acc, curr) => acc + (curr.totalQuantity || 0), 0);
-  const totalAvailable = equipment.reduce((acc, curr) => acc + (curr.availableQuantity || 0), 0);
-  const totalBroken = equipment.reduce((acc, curr) => acc + (curr.brokenQuantity || 0), 0);
+  const totalPieces = equipment.reduce((acc, curr) => acc + (Number(curr.totalQuantity) || 0), 0);
+  const totalAvailable = equipment.reduce((acc, curr) => acc + (Number(curr.availableQuantity) || 0), 0);
+  const totalBroken = equipment.reduce((acc, curr) => acc + (Number(curr.brokenQuantity) || 0), 0);
+  const totalTypes = equipment.length;
 
   return (
     <div className={cn("space-y-12 max-w-7xl mx-auto pb-24 rtl font-sans", !isNested && "px-6")} dir="rtl">
+      {/* Official Algerian Header (Print Only or Toggle) */}
+      <div className="hidden print:block mb-8 border-b-2 border-black pb-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="text-right text-sm font-bold">
+            <p>مديرية التربية لولاية: أم البواقي</p>
+            <p>ثانوية بوحازم عبد المجيد - عين كرشة</p>
+          </div>
+          <div className="text-center">
+            <p className="font-black text-base">الجمهورية الجزائرية الديمقراطية الشعبية</p>
+            <p className="font-bold text-sm">وزارة التربية الوطنية</p>
+          </div>
+          <div className="text-left text-sm font-bold">
+            <p>السنة الدراسية: 2025 - 2026</p>
+          </div>
+        </div>
+        <h2 className="text-center text-2xl font-black underline mt-6">جرد مخزون الزجاجيات والعتاد — مخبر الوسائل التعليمية</h2>
+      </div>
+
       {/* Header */}
       {!isNested && (
         <header className="relative flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-4">
@@ -695,10 +741,10 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
       {!isNested && (
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
-            { label: 'إجمالي القطع', value: totalPieces, icon: Package, color: 'bg-primary/10', textColor: 'text-primary', status: 'all' },
-            { label: 'السليم/المتوفر', value: totalAvailable, icon: CheckCircle, color: 'bg-primary/5', textColor: 'text-primary', status: 'functional' },
-            { label: 'المكسور/التالف', value: totalBroken, icon: AlertTriangle, color: 'bg-error/10', textColor: 'text-error', status: 'broken' },
-            { label: 'بحاجة لمعايرة', value: '08', icon: Wrench, color: 'bg-surface-container-low', textColor: 'text-primary', status: 'maintenance' },
+            { label: 'أصناف العتاد', value: totalTypes, icon: Layers, color: 'bg-primary/10', textColor: 'text-primary', status: 'all' },
+            { label: 'إجمالي الكميات', value: totalPieces, icon: Package, color: 'bg-primary/5', textColor: 'text-primary', status: 'all' },
+            { label: 'الحالة: جيدة', value: totalAvailable, icon: CheckCircle, color: 'bg-green-50', textColor: 'text-green-600', status: 'functional' },
+            { label: 'الحالة: مكسورة', value: totalBroken, icon: AlertTriangle, color: 'bg-error/10', textColor: 'text-error', status: 'broken' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
