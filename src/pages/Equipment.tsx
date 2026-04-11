@@ -430,6 +430,111 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     printWindow.document.close();
   };
 
+  const handlePrintInventoryCards = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('يرجى السماح بالنوافذ المنبثقة لطباعة بطاقات الجرد');
+      return;
+    }
+
+    const cardsHtml = filteredEquipment.map((e) => `
+      <div class="card">
+        <div class="card-header">
+          <div class="ministry">وزارة التربية الوطنية</div>
+          <div class="institution">ثانوية بوحازم عبد المجيد - عين كرشة</div>
+        </div>
+        <div class="card-title">بطاقة جرد العتاد</div>
+        <div class="card-body">
+          <div class="field"><span class="label">تعيين الجهاز:</span> <span class="value">${e.smartNameAr || e.name}</span></div>
+          <div class="field"><span class="label">رقم الجرد:</span> <span class="value">${e.serialNumber || '---'}</span></div>
+          <div class="field"><span class="label">النوع:</span> <span class="value">${e.type === 'glassware' ? 'زجاجيات' : e.type === 'tech' ? 'أجهزة تقنية' : 'أخرى'}</span></div>
+          <div class="field"><span class="label">الموقع:</span> <span class="value">${e.location || '---'}</span></div>
+        </div>
+        <div class="card-qr">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(JSON.stringify({ id: e.id, type: 'equipment', name: e.name }))}" alt="QR Code" />
+        </div>
+        <div class="card-footer">نظام تسيير المخابر - الأرضية الرقمية</div>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>طباعة بطاقات الجرد</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+            body { 
+              font-family: 'Cairo', sans-serif; 
+              margin: 0; 
+              padding: 20px; 
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+              gap: 20px;
+              background: #f5f5f5;
+            }
+            @media print {
+              body { background: white; padding: 0; }
+              .card { break-inside: avoid; margin-bottom: 10px; }
+            }
+            .card {
+              background: white;
+              border: 2px solid #1a2744;
+              border-radius: 12px;
+              padding: 15px;
+              position: relative;
+              height: 180px;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            .card-header {
+              text-align: center;
+              font-size: 10px;
+              font-weight: bold;
+              border-bottom: 1px solid #eee;
+              padding-bottom: 5px;
+              margin-bottom: 5px;
+            }
+            .card-title {
+              text-align: center;
+              font-size: 14px;
+              font-weight: 900;
+              color: #1a2744;
+              margin-bottom: 10px;
+            }
+            .card-body {
+              font-size: 11px;
+              flex-grow: 1;
+            }
+            .field { margin-bottom: 4px; display: flex; gap: 5px; }
+            .label { font-weight: 900; color: #1a2744; min-width: 70px; }
+            .value { font-weight: bold; color: #333; }
+            .card-qr {
+              position: absolute;
+              bottom: 15px;
+              left: 15px;
+            }
+            .card-qr img { width: 60px; height: 60px; }
+            .card-footer {
+              text-align: center;
+              font-size: 8px;
+              color: #999;
+              border-top: 1px solid #eee;
+              padding-top: 5px;
+              margin-top: 5px;
+            }
+          </style>
+        </head>
+        <body>
+          ${cardsHtml}
+          <script>window.onload = () => { window.print(); window.close(); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleExportPDF = () => {
     const doc = new jsPDF('l', 'mm', 'a4');
     
@@ -654,6 +759,13 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
               className="hidden" 
               accept=".xls,.xlsx"
             />
+            <button 
+              onClick={handlePrintInventoryCards}
+              className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"
+            >
+              <QrCode size={20} />
+              طباعة بطاقات الجرد
+            </button>
             <button 
               onClick={handlePrintList}
               className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"

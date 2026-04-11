@@ -123,11 +123,12 @@ export default function Login() {
 
     try {
       // Execute reCAPTCHA Enterprise
-      if (window.grecaptcha && window.grecaptcha.enterprise) {
+      const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
-              const token = await window.grecaptcha.enterprise.execute('6Lc46KYsAAAAAN6xmdkLGitfTCx_wyEHQ_sE7i1K', { action: 'LOGIN' });
+              const token = await window.grecaptcha.enterprise.execute(siteKey, { action: 'LOGIN' });
               console.log('reCAPTCHA Enterprise token:', token);
               resolve();
             } catch (err) {
@@ -187,11 +188,12 @@ export default function Login() {
     const provider = new GoogleAuthProvider();
     try {
       // Execute reCAPTCHA Enterprise
-      if (window.grecaptcha && window.grecaptcha.enterprise) {
+      const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
-              const token = await window.grecaptcha.enterprise.execute('6Lc46KYsAAAAAN6xmdkLGitfTCx_wyEHQ_sE7i1K', { action: 'GOOGLE_LOGIN' });
+              const token = await window.grecaptcha.enterprise.execute(siteKey, { action: 'GOOGLE_LOGIN' });
               console.log('reCAPTCHA Enterprise token (Google):', token);
               resolve();
             } catch (err) {
@@ -255,11 +257,12 @@ export default function Login() {
     const provider = new FacebookAuthProvider();
     try {
       // Execute reCAPTCHA Enterprise
-      if (window.grecaptcha && window.grecaptcha.enterprise) {
+      const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
-              const token = await window.grecaptcha.enterprise.execute('6Lc46KYsAAAAAN6xmdkLGitfTCx_wyEHQ_sE7i1K', { action: 'FACEBOOK_LOGIN' });
+              const token = await window.grecaptcha.enterprise.execute(siteKey, { action: 'FACEBOOK_LOGIN' });
               console.log('reCAPTCHA Enterprise token (Facebook):', token);
               resolve();
             } catch (err) {
