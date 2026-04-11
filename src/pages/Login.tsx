@@ -348,8 +348,8 @@ export default function Login() {
 
   return (
     <div className="bg-surface-container-low text-on-surface min-h-screen flex overflow-hidden rtl font-sans" dir="rtl">
-      {/* Left Panel: Photo Mosaic (60%) */}
-      <section className="hidden md:flex md:w-[60%] relative bg-primary-dim p-8 flex-col justify-between overflow-hidden">
+      {/* Left Panel: Photo Mosaic (70%) */}
+      <section className="hidden md:flex md:w-[70%] relative bg-primary-dim p-8 flex-col justify-between overflow-hidden">
         {/* Background Mosaic Overlay */}
         <div className="absolute inset-0 opacity-40 z-0 p-4">
           <div className="mosaic-container">
@@ -378,8 +378,13 @@ export default function Login() {
         {/* Branding Content */}
         <div className="relative z-20 h-full flex flex-col justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>science</span>
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center p-2 shadow-lg">
+              <img 
+                src="/ministry-logo.png" 
+                alt="Ministry Logo" 
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <h1 className="text-white text-3xl font-black tracking-tight leading-none">الأرضية الرقمية</h1>
@@ -403,56 +408,38 @@ export default function Login() {
         </div>
       </section>
 
-      {/* Right Panel: Auth Form (40%) */}
-      <main className="w-full lg:w-2/5 bg-surface-container-low relative flex flex-col items-center justify-center p-6 md:p-12 lg:p-16 overflow-y-auto">
+      {/* Right Panel: Auth Form (30%) */}
+      <main className="w-full lg:w-[30%] bg-surface-container-low relative flex flex-col items-center justify-center p-4 md:p-8 lg:p-10 overflow-y-auto">
         {/* Decorative Blobs */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px] -ml-40 -mb-40"></div>
         
         <div className="w-full max-w-md relative z-10">
-          <div className="text-center mb-6 md:mb-8">
+          <div className="text-center mb-4 md:mb-6">
             {isInAppBrowser && (
-              <div className="mb-4 p-3 bg-primary/10 rounded-2xl border border-primary/20 text-right">
-                <p className="text-[10px] font-black text-primary mb-1 flex items-center gap-2">
-                  <Globe size={12} /> تنبيه لمستخدمي فيسبوك/إنستغرام
+              <div className="mb-3 p-2 bg-primary/10 rounded-2xl border border-primary/20 text-right">
+                <p className="text-[9px] font-black text-primary mb-1 flex items-center gap-2">
+                  <Globe size={10} /> تنبيه لمستخدمي فيسبوك/إنستغرام
                 </p>
-                <p className="text-[9px] text-on-surface/70 leading-relaxed mb-2">
+                <p className="text-[8px] text-on-surface/70 leading-relaxed mb-1.5">
                   لتجنب مشاكل تسجيل الدخول، يفضل فتح الموقع في متصفح خارجي أو استخدام الرابط المباشر.
                 </p>
                 <button 
                   onClick={() => window.location.href = "https://amatti-education-dz.firebaseapp.com/LAB"}
-                  className="w-full bg-primary text-on-primary py-1.5 rounded-lg text-[9px] font-black"
+                  className="w-full bg-primary text-on-primary py-1 rounded-lg text-[8px] font-black"
                 >
                   فتح الرابط المباشر المستقر
                 </button>
               </div>
             )}
-            <div className="inline-block p-1.5 bg-white rounded-[32px] mb-4 md:mb-6 shadow-xl border border-outline/10">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] bg-primary flex items-center justify-center text-on-primary shadow-inner overflow-hidden">
-                <img 
-                  src="/ministry-logo.png" 
-                  alt="Logo" 
-                  className="w-full h-full object-contain p-1.5"
-                  onError={(e) => {
-                    // Fallback to Beaker icon if logo.png is not found
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent) {
-                      const icon = document.createElement('div');
-                      icon.className = "flex items-center justify-center w-full h-full";
-                      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-beaker md:size-12"><path d="M4.5 3h15"/><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"/><path d="M6 14h12"/></svg>';
-                      parent.appendChild(icon);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <h3 className="text-xl md:text-2xl font-black text-primary mb-1 font-serif tracking-tight">الأرضية الرقمية — فضاء موظفوا المخابر</h3>
-            <p className="text-on-surface/60 font-bold text-sm md:text-base">نظام تسيير المخابر العلمية — فضاء الموظفين</p>
-            <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 text-right text-xs leading-relaxed text-on-surface/70">
-              <p className="font-black text-primary mb-1">عن المنصة:</p>
-              نظام رقمي متكامل مصمم خصيصاً لتسيير المخابر العلمية في المؤسسات التربوية الجزائرية (متوسط وثانوي). يهدف النظام إلى رقمنة السجلات، متابعة الجرد، وتسهيل العمل البيداغوجي لموظفي المخابر.
-            </div>
+            <img 
+              src="/ministry-logo.png" 
+              alt="Logo" 
+              className="w-32 h-32 md:w-40 md:h-40 object-contain mx-auto mb-6"
+              referrerPolicy="no-referrer"
+            />
+            <h3 className="text-lg md:text-xl font-black text-primary mb-0.5 font-serif tracking-tight">الأرضية الرقمية — فضاء موظفوا المخابر</h3>
+            <p className="text-on-surface/60 font-bold text-xs md:text-sm">نظام تسيير المخابر العلمية — فضاء الموظفين</p>
             {!isLogin && (
               <div className="mt-3 inline-flex items-center px-4 py-1.5 bg-primary/10 rounded-full text-primary text-[10px] font-black uppercase tracking-widest">
                 <UserPlus size={12} className="ml-1.5" />
@@ -646,7 +633,7 @@ export default function Login() {
               {isLogin ? 'فيسبوك' : 'فيسبوك'}
             </button>
           </div>
-          <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm font-bold text-on-surface/60 border-t border-outline/10 pt-8 w-full max-w-md mx-auto">
+          <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[10px] font-bold text-on-surface/60 border-t border-outline/10 pt-6 w-full max-w-md mx-auto">
             <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/privacy-policy">سياسة الخصوصية</Link>
             <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/terms-of-service">شروط الخدمة</Link>
             <Link className="hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4" to="/data-deletion">حذف البيانات</Link>
