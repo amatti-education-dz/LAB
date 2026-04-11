@@ -379,11 +379,11 @@ export default function Login() {
       console.error('Auth error:', err);
       if (isLogin) {
         if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-          setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+          setError('البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التأكد من صحة البيانات أو تفعيل خيار تسجيل الدخول بالبريد الإلكتروني في Firebase.');
         } else if (err.code === 'auth/operation-not-allowed') {
           setError('تسجيل الدخول بالبريد الإلكتروني غير مفعل في إعدادات Firebase.');
         } else {
-          setError('خطأ في تسجيل الدخول. يرجى التحقق من البيانات.');
+          setError('خطأ في تسجيل الدخول. يرجى التحقق من البيانات أو التأكد من تفعيل خدمات Firebase.');
         }
       } else {
         if (err.code === 'auth/email-already-in-use') {
@@ -649,7 +649,7 @@ export default function Login() {
             <div className="inline-block p-1.5 bg-white rounded-[32px] mb-4 md:mb-6 shadow-xl border border-outline/10">
               <div className="w-16 h-16 md:w-20 md:h-20 rounded-[24px] bg-primary flex items-center justify-center text-on-primary shadow-inner overflow-hidden">
                 <img 
-                  src="/logo.png" 
+                  src="/ministry-logo.png" 
                   alt="Logo" 
                   className="w-full h-full object-contain p-1.5"
                   onError={(e) => {

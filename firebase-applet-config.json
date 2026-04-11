@@ -1,10 +1,9 @@
 {
-  "projectId": "amatti-education-dz",
-  "appId": "1:798574435527:web:1e0543b7be10fc93ce72e2",
-  "apiKey": "AIzaSyDCUBeak07VjFdE21ccQz8B4mXBohK5h0U",
-  "authDomain": "amatti-education-dz.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-37818744-6c48-4226-9383-0422a18c40d1",
-  "storageBucket": "amatti-education-dz.firebasestorage.app",
-  "messagingSenderId": "798574435527",
-  "measurementId": ""
+  "projectId": "lab-education-dz",
+  "appId": "1:1043692780411:web:9c5155dae4bbaba3b41bde",
+  "apiKey": "AIzaSyCIARjpIeDOZ__2rW0aFQHFyYCU4zwff9Y",
+  "authDomain": "lab-education-dz.firebaseapp.com",
+  "storageBucket": "lab-education-dz.firebasestorage.app",
+  "messagingSenderId": "1043692780411",
+  "measurementId": "G-9L9YC6TZQ9"
 }

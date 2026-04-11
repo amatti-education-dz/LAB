@@ -82,7 +82,12 @@ export default function Layout() {
             setUserRole('مساعد مخبري');
           }
         } catch (error) {
-          console.error('Error fetching role:', error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('the client is offline')) {
+            console.warn('Firestore is offline. Using default role.');
+          } else {
+            console.error('Error fetching role:', error);
+          }
           setUserRole('مساعد مخبري');
         }
       }
@@ -130,9 +135,8 @@ export default function Layout() {
         <div className="p-6 flex flex-col items-center gap-2">
           <img 
             className={cn("object-contain transition-all", isSidebarOpen ? "w-16 h-16" : "w-10 h-10")}
-            src="https://upload.wikimedia.org/wikipedia/commons/d/d8/%D9%88%D8%B2%D8%A7%D8%B1%D8%A9_%D8%A7%D9%84%D8%AA%D8%B1%D8%A8%D9%8A%D8%A9_%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A%D8%A9.svg" 
+            src="/ministry-logo.png" 
             alt="Logo" 
-            referrerPolicy="no-referrer"
           />
           {isSidebarOpen && (
             <div className="text-center mt-2">

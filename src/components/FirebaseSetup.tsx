@@ -19,7 +19,12 @@ export default function FirebaseSetup() {
           }
         }
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, 'chemicals');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('the client is offline')) {
+          console.warn('Firestore is offline or not created yet. Skipping initial data seed.');
+        } else {
+          handleFirestoreError(error, OperationType.GET, 'chemicals');
+        }
       }
 
       try {
@@ -35,7 +40,12 @@ export default function FirebaseSetup() {
           }
         }
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, 'equipment');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('the client is offline')) {
+          console.warn('Firestore is offline or not created yet. Skipping initial data seed.');
+        } else {
+          handleFirestoreError(error, OperationType.GET, 'equipment');
+        }
       }
     };
     setupData();
