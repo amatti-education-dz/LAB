@@ -51,6 +51,12 @@ import BudgetPurchases from './pages/BudgetPurchases';
 import ChemicalStorage from './pages/ChemicalStorage';
 import SchoolLegislation from './pages/SchoolLegislation';
 
+import QRPrintCenter from './pages/QRPrintCenter';
+import StudentGroups from './pages/StudentGroups';
+import BudgetPurchases from './pages/BudgetPurchases';
+import ChemicalStorage from './pages/ChemicalStorage';
+import SchoolLegislation from './pages/SchoolLegislation';
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
