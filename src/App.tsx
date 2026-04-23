@@ -45,6 +45,12 @@ import FirebaseSetup from './components/FirebaseSetup';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
+import QRPrintCenter from './pages/QRPrintCenter';
+import StudentGroups from './pages/StudentGroups';
+import BudgetPurchases from './pages/BudgetPurchases';
+import ChemicalStorage from './pages/ChemicalStorage';
+import SchoolLegislation from './pages/SchoolLegislation';
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,10 +98,15 @@ export default function App() {
               <Route path="glassware-breakage" element={<GlasswareBreakage />} />
               <Route path="smart-forms" element={<SmartForms />} />
               <Route path="chemical-waste" element={<ChemicalWaste />} />
+              <Route path="chemical-storage" element={<ChemicalStorage />} />
+              <Route path="school-legislation" element={<SchoolLegislation />} />
               <Route path="educational-map" element={<EducationalMap />} />
               <Route path="consumables-sds" element={<ConsumablesSDS />} />
               <Route path="backup" element={<BackupCenter />} />
+              <Route path="budget-purchases" element={<BudgetPurchases />} />
               <Route path="database-management" element={<DatabaseManagement />} />
+              <Route path="qr-print-center" element={<QRPrintCenter />} />
+              <Route path="student-groups" element={<StudentGroups />} />
               <Route path="timetable" element={<Timetable />} />
               <Route path="lab-schedule" element={<LabSchedule />} />
               <Route path="pedagogical-tracking" element={<PedagogicalTracking />} />

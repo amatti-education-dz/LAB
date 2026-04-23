@@ -24,7 +24,11 @@ import {
   BookOpen,
   Sun,
   Moon,
-  QrCode
+  QrCode,
+  Printer,
+  Wallet,
+  ShieldCheck,
+  Scale
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
@@ -39,7 +43,12 @@ import logo from '/ministry-logo.png';
 const navItems = [
   { name: 'لوحة القيادة', path: '/', icon: LayoutDashboard },
   { name: 'إدارة المخزون', path: '/inventory', icon: Database },
+  { name: 'التشريع المدرسي', path: '/school-legislation', icon: Scale },
+  { name: 'مصفوفة التوافق', path: '/chemical-storage', icon: ShieldCheck },
   { name: 'المتابعة البيداغوجية', path: '/pedagogical', icon: BookOpen },
+  { name: 'الميزانية والطلبيات', path: '/budget-purchases', icon: Wallet },
+  { name: 'تسيير الأفواج', path: '/student-groups', icon: Users },
+  { name: 'مركز الطباعة (QR)', path: '/qr-print-center', icon: Printer },
   { name: 'الإعدادات', path: '/settings', icon: Settings },
 ];
 
