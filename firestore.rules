@@ -13,10 +13,7 @@ service cloud.firestore {
     }
 
     function isMasterUser() {
-      return isSignedIn() && (
-        request.auth.uid == 'UMDdyJMUXHVilG0ihIjTxULQ0yd2' || 
-        request.auth.token.email == 'faycalassoul@gmail.com'
-      );
+      return isSignedIn() && request.auth.token.role == 'admin';
     }
 
     function isValidId(id) {
@@ -41,47 +38,11 @@ service cloud.firestore {
     // USER DATA (SOPHISTICATED SCOPING)
     // ------------------------------------------------------------
     match /users/{userId} {
+      // Allow the user to read/write their own root document
       allow get, write: if isOwner(userId);
       
-      // Personal settings/profile data
-      match /settings/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      // Core Laboratory Entities (User-Scoped)
-      match /chemicals/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      match /equipment/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      match /teachers/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      match /incident_logs/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-      
-      match /reports/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      match /backups/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      match /loans/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      match /activity_preparations/{docId} {
-        allow read, write: if isOwner(userId);
-      }
-
-      match /scrapping_records/{docId} {
+      // Allow the user to read/write any document in any of their own subcollections
+      match /{document=**} {
         allow read, write: if isOwner(userId);
       }
     }
