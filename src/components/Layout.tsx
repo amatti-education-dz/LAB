@@ -51,6 +51,7 @@ export default function Layout() {
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
@@ -224,7 +225,13 @@ export default function Layout() {
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary" size={18} />
             </div>
             <div className="flex items-center gap-3 relative" ref={profileMenuRef}>
-              <button className="p-2 hover:bg-secondary-container/50 rounded-full transition-colors relative">
+              <button 
+                onClick={() => {
+                  setIsNotificationsMenuOpen(!isNotificationsMenuOpen);
+                  setIsProfileMenuOpen(false);
+                }}
+                className="p-2 hover:bg-secondary-container/50 rounded-full transition-colors relative"
+              >
                 <Bell size={20} className="text-primary" />
                 {lowStockCount > 0 && (
                   <span className="absolute top-2 right-2 w-4 h-4 bg-error text-on-error text-[8px] rounded-full flex items-center justify-center font-black">
@@ -233,7 +240,10 @@ export default function Layout() {
                 )}
               </button>
               <button 
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                onClick={() => {
+                  setIsProfileMenuOpen(!isProfileMenuOpen);
+                  setIsNotificationsMenuOpen(false);
+                }}
                 className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/10 hover:border-primary/30 transition-all active:scale-95"
               >
                 <img 
@@ -243,6 +253,47 @@ export default function Layout() {
                   referrerPolicy="no-referrer"
                 />
               </button>
+
+              <AnimatePresence>
+                {isNotificationsMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute left-10 lg:left-14 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-surface-container-highest rounded-2xl shadow-xl border border-outline-variant p-2 z-50 text-right"
+                  >
+                    <div className="px-4 py-3 border-b border-outline-variant/50 mb-2 flex justify-between items-center bg-surface sticky top-0 z-10 rounded-xl">
+                      <p className="text-sm font-black text-primary">الإشعارات</p>
+                      {notifications.length > 0 && (
+                        <span className="bg-error/10 text-error px-2 py-0.5 rounded-full text-xs font-bold">{notifications.length} جديد</span>
+                      )}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="p-8 flex flex-col items-center justify-center text-secondary">
+                        <Bell size={32} className="opacity-20 mb-2" />
+                        <p className="text-sm">لا توجد إشعارات جديدة</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {notifications.map((notif, i) => (
+                          <div key={i} className="p-3 bg-error/5 hover:bg-error/10 rounded-xl transition-colors flex items-start gap-3">
+                             <div className="p-2 bg-error/10 text-error rounded-full shrink-0"><ShieldAlert size={16}/></div>
+                             <div>
+                                <p className="text-sm font-bold text-primary">{notif.nameAr}</p>
+                                <p className="text-xs text-secondary mt-1">المخزون منخفض: <span className="font-bold text-error">{notif.quantity}</span> كمية متبقية</p>
+                             </div>
+                          </div>
+                        ))}
+                        {notifications.length > 0 && (
+                          <Link to="/inventory" onClick={() => setIsNotificationsMenuOpen(false)} className="w-full mt-2 py-2 text-center text-xs font-bold text-primary hover:bg-primary/5 rounded-lg transition-colors border border-primary/20">
+                            عرض المخزون بالكامل
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <AnimatePresence>
                 {isProfileMenuOpen && (
