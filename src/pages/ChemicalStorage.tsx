@@ -4,6 +4,7 @@ import { getDocs, query } from 'firebase/firestore';
 import { analyzeChemicalStorage, StorageAnalysisResult } from '../services/geminiService';
 import { ShieldCheck, ShieldAlert, Sparkles, Printer, AlertTriangle, Info, MapPin } from 'lucide-react';
 import Breadcrumbs from '../components/Breadcrumbs';
+import StorageMap from '../components/StorageMap';
 
 export default function ChemicalStorageMatrix() {
   const [loading, setLoading] = useState(true);
@@ -126,6 +127,12 @@ export default function ChemicalStorageMatrix() {
             <span>{analyzing ? 'جاري التحليل...' : 'تشغيل خوارزمية التوافق'}</span>
           </button>
         </header>
+
+        {!loading && chemicals.length > 0 && (
+          <div className="mb-12">
+            <StorageMap chemicals={chemicals} />
+          </div>
+        )}
 
         {loading ? (
           <div className="p-12 text-center text-secondary">جاري تحميل الجرد...</div>

@@ -303,6 +303,7 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Account Linking State
   const [linkingError, setLinkingError] = useState<React.ReactNode | null>(null);
@@ -445,6 +446,35 @@ export default function SettingsPage() {
     }
     setFixResults(results);
     setIsFixingPermissions(false);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!auth.currentUser) return;
+    if (!newPassword || !confirmPassword) {
+      alert('الرجاء إدخال كلمة المرور وتأكيدها');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert('كلمات المرور غير متطابقة');
+      return;
+    }
+    
+    setIsUpdatingPassword(true);
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error: any) {
+      if (error.code === 'auth/requires-recent-login') {
+        alert('يجب عليك تسجيل الخروج ثم الدخول مرة أخرى لتغيير كلمة المرور لأسباب أمنية.');
+      } else {
+        alert('حدث خطأ أثناء تحديث كلمة المرور: ' + error.message);
+      }
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleSave = async () => {
@@ -786,7 +816,7 @@ export default function SettingsPage() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الرتبة الحالية</label>
+                      <label className="text-sm font-black text-[#5c6146] mr-2">الرتبة المهنية</label>
                       <select 
                         className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold appearance-none"
                         value={jobTitle}
@@ -804,6 +834,21 @@ export default function SettingsPage() {
                           <option value="ملحق رئيس بالمخابر">ملحق رئيس بالمخابر</option>
                           <option value="ملحق مشرف بالمخابر">ملحق مشرف بالمخابر</option>
                         </optgroup>
+                      </select>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-black text-[#5c6146] mr-2">الدرجة / السلم</label>
+                      <select 
+                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold appearance-none"
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                      >
+                        <option value="">اختر الدرجة...</option>
+                        {[...Array(13)].map((_, i) => (
+                          <option key={i} value={i === 0 ? "متدرب" : i.toString()}>
+                            {i === 0 ? "متدرب / جديد" : `الدرجة ${i}`}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-3">
@@ -1256,6 +1301,21 @@ export default function SettingsPage() {
                           onChange={(e) => setConfirmPassword(e.target.value)}
                         />
                       </div>
+                    </div>
+
+                    <div className="mt-8 flex justify-end">
+                      <button 
+                        onClick={handleUpdatePassword}
+                        disabled={isUpdatingPassword || !newPassword}
+                        className="flex items-center gap-2 px-8 py-4 bg-[#2b3d22] text-white rounded-2xl font-bold shadow-lg shadow-[#2b3d22]/10 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                      >
+                        {isUpdatingPassword ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={20} />
+                        )}
+                        حفظ كلمة المرور
+                      </button>
                     </div>
                   </div>
                 </section>

@@ -10,6 +10,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { auth } from './firebase';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DocumentLibrary from './pages/DocumentLibrary';
 import Chemicals from './pages/Chemicals';
 import Equipment from './pages/Equipment';
 import Safety from './pages/Safety';
@@ -34,6 +35,8 @@ import BackupCenter from './pages/BackupCenter';
 import DatabaseManagement from './pages/DatabaseManagement';
 import Timetable from './pages/Timetable';
 import LabSchedule from './pages/LabSchedule';
+import LabExperiments from './pages/LabExperiments';
+import LabAssistant from './pages/LabAssistant';
 import PedagogicalTracking from './pages/PedagogicalTracking';
 import FollowUpRegistry from './pages/FollowUpRegistry';
 import Sync from './pages/Sync';
@@ -92,6 +95,7 @@ export default function App() {
               element={user ? <Layout /> : <Navigate to="/login" />}
             >
               <Route index element={<Dashboard />} />
+              <Route path="document-library" element={<DocumentLibrary />} />
               <Route path="inventory" element={<InventoryDashboard />} />
               <Route path="pedagogical" element={<PedagogicalDashboard />} />
               <Route path="maintenance" element={<Maintenance />} />
@@ -115,6 +119,10 @@ export default function App() {
               <Route path="student-groups" element={<StudentGroups />} />
               <Route path="timetable" element={<Timetable />} />
               <Route path="lab-schedule" element={<LabSchedule />} />
+              <Route path="lab-experiments" element={<LabExperiments />} />
+              <Route path="lab-assistant" element={<LabAssistant />} />
+              <Route path="smart-forms" element={<SmartForms />} />
+              <Route path="backup-center" element={<BackupCenter />} />
               <Route path="pedagogical-tracking" element={<PedagogicalTracking />} />
               <Route path="follow-up-registry" element={<FollowUpRegistry />} />
               <Route path="sync" element={<Sync />} />

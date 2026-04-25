@@ -478,3 +478,131 @@ export async function analyzePedagogicalTracking(entries: any[], retries = 3, de
     return null;
   }
 }
+
+export interface IncidentAnalysis {
+  rootCause: string;
+  suggestedActions: string[];
+  safetyTipsAr: string;
+  longTermMitigation: string;
+}
+
+export async function analyzeIncident(incident: any, retries = 3, delay = 5000): Promise<IncidentAnalysis | null> {
+  try {
+    const hasKey = await ensureApiKey();
+    if (!hasKey) return null;
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `You are a laboratory safety expert in Algeria. 
+      Analyze this laboratory incident and provide a professional investigation report.
+      
+      Incident: ${JSON.stringify(incident)}
+      
+      Provide:
+      1. Potential root cause analysis (rootCause).
+      2. Immediate suggested corrective actions (suggestedActions - as an array).
+      3. Specific safety tips in Arabic (safetyTipsAr).
+      4. Long-term mitigation strategies (longTermMitigation).
+      
+      Respond completely in Arabic for all text fields.
+      `,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            rootCause: { type: Type.STRING },
+            suggestedActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            safetyTipsAr: { type: Type.STRING },
+            longTermMitigation: { type: Type.STRING }
+          },
+          required: ["rootCause", "suggestedActions", "safetyTipsAr", "longTermMitigation"]
+        }
+      }
+    });
+
+    if (!response.text) return null;
+    return JSON.parse(response.text.trim()) as IncidentAnalysis;
+  } catch (error: any) {
+    if ((error?.status === 'RESOURCE_EXHAUSTED' || error?.code === 429) && retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return analyzeIncident(incident, retries - 1, delay * 1.5);
+    }
+    console.error("Error analyzing incident:", error);
+    return null;
+  }
+}
+
+export async function chatWithLabAssistant(messages: { role: 'user' | 'model', parts: string }[]) {
+  try {
+    const hasKey = await ensureApiKey();
+    if (!hasKey) return "لم يتم تمكين مفتاح API. يرجى مراجعة الإعدادات.";
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
+    
+    // System instruction for the chat
+    const systemPrompt = `You are "Mekhbari AI" (مخبري الذكي), an expert laboratory assistant specialized in the Algerian education system (Middle and High School). 
+    Your expertise includes:
+    1. Chemical safety and compatibility (MSDS knowledge).
+    2. Physics and Chemistry experiment procedures according to the Algerian curriculum.
+    3. Lab management best practices (inventory, storage, waste disposal).
+    4. Laboratory calculations (normality, molarity, dilutions).
+    
+    Guidelines:
+    - Respond strictly in Arabic (Algerian professional terminology).
+    - Be precise and safety-oriented. If a request is dangerous, warn clearly.
+    - Reference Algerian school legislation when relevant.
+    - Keep responses concise but helpful.
+    `;
+
+    const contents = messages.map(m => `${m.role === 'user' ? 'User' : 'Model'}: ${m.parts}`).join('\n');
+    const fullPrompt = `${systemPrompt}\n\nConversation history:\n${contents}\n\nModel response:`;
+
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: fullPrompt
+    });
+
+    return result.text || "عذراً، لم أتمكن من توليد إجابة.";
+  } catch (error) {
+    console.error("Lab Assistant Chat Error:", error);
+    return "عذراً، حدث خطأ أثناء الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً.";
+  }
+}
+
+export async function analyzeLabImage(base64Image: string) {
+  try {
+    const hasKey = await ensureApiKey();
+    if (!hasKey) return null;
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY || '' });
+    
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: "Identify the laboratory equipment or chemical in this image. Provide its name in Arabic, its primary use in school labs, and common safety warnings. Respond in JSON format with fields: nameAr, primaryUse, safetyWarnings." },
+            { 
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64Image
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    return JSON.parse(result.text || '{}');
+  } catch (error) {
+    console.error("AI Image Analysis Error:", error);
+    return null;
+  }
+}

@@ -1,250 +1,263 @@
-import React, { useState } from 'react';
-import { BookOpen, FileText, CheckCircle, Clock, Plus, Search, Filter, Sparkles, Activity, FileStack, PackageMinus, History, Archive, Loader, ArrowRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { 
+  FileText, 
+  Plus, 
+  ArrowLeft, 
+  Download, 
+  Printer, 
+  Sparkles, 
+  CheckCircle2, 
+  AlertTriangle,
+  ClipboardList,
+  PenTool,
+  History,
+  Info,
+  X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { Link, useNavigate } from 'react-router-dom';
-import { findSmartForm } from '../services/geminiService';
+import Breadcrumbs from '../components/Breadcrumbs';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-const FORM_TEMPLATES = [
-  {
-    title: 'تحضير نشاط تطبيقي',
-    desc: 'نموذج طلب التجهيزات والمواد الكيميائية للعمل المخبري.',
-    type: 'نموذج مطبوع (A4)',
-    icon: Activity,
-    path: '/activity-request',
-    color: 'text-primary',
-    bg: 'bg-primary/10'
-  },
-  {
-    title: 'بطاقة إعارة مستلزمات',
-    desc: 'تسجيل وإثبات خروج أجهزة من المخبر مؤقتاً.',
-    type: 'نموذج نصف صفحة',
-    icon: FileStack,
-    path: '/loan-request',
-    color: 'text-tertiary',
-    bg: 'bg-tertiary/10'
-  },
-  {
-    title: 'محضر كسر / تعويض',
-    desc: 'تصريح كسر زجاجيات أو إتلاف من طرف التلاميذ أو الأساتذة.',
-    type: 'نموذج رسمي',
-    icon: PackageMinus,
-    path: '/glassware-breakage',
-    color: 'text-error',
-    bg: 'bg-error/10'
-  },
-  {
-    title: 'محضر إسقاط تجهيزات',
-    desc: 'اقتراح إخراج أجهزة من الجرد بصدد التلف النهائي.',
-    type: 'لجنة الإسقاط',
-    icon: History,
-    path: '/scrapping',
-    color: 'text-warning',
-    bg: 'bg-warning/10'
-  },
-  {
-    title: 'سجل المتابعة اليومية',
-    desc: 'ورقة المتابعة الزمنية لإشعال المخبر وتدوين الأعمال.',
-    type: 'دفتر المتابعة',
-    icon: Archive,
-    path: '/follow-up-registry',
-    color: 'text-secondary',
-    bg: 'bg-secondary-container'
-  }
+interface FormTemplate {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  color: string;
+}
+
+const TEMPLATES: FormTemplate[] = [
+  { id: 'pv-bris', title: 'محضر ضياع أو كسر', description: 'توثيق الحوادث التي تسببت في إتلاف الوسائل التعليمية.', icon: AlertTriangle, color: 'text-error bg-error/10 border-error/20' },
+  { id: 'bon-commande', title: 'طلب اقتناء وسائل', description: 'نموذج رسمي لطلب مواد كيميائية أو أدوات مخبرية جديدة.', icon: ClipboardList, color: 'text-primary bg-primary/10 border-primary/20' },
+  { id: 'pv-inventaire', title: 'محضر جرد سنوي', description: 'تقرير ختامي يصنف حالة الجرد في نهاية السنة الدراسية.', icon: FileText, color: 'text-tertiary bg-tertiary/10 border-tertiary/20' },
+  { id: 'fiche-suivi', title: 'بطاقة متابعة تقنية', description: 'سجل صيانة ومتابعة دورية لجهاز مخبري معين.', icon: History, color: 'text-secondary bg-secondary/10 border-secondary/20' }
 ];
 
 export default function SmartForms() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSearchingAi, setIsSearchingAi] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<{recommendedPath: string, reasoning: string} | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    reference: `REF-${Math.floor(Math.random() * 10000)}`,
+    establishment: 'ثانوية الشهيد...',
+    content: '',
+    items: [{ name: '', quantity: '', condition: 'سليم' }]
+  });
 
-  const filteredForms = FORM_TEMPLATES.filter(form => 
-    form.title.includes(searchTerm) || form.desc.includes(searchTerm)
-  );
-
-  const handleAiSearch = async () => {
-    if (!searchTerm.trim()) return;
-    setIsSearchingAi(true);
-    setAiSuggestion(null);
-    try {
-      const formsData = FORM_TEMPLATES.map(f => ({ title: f.title, path: f.path, desc: f.desc }));
-      const result = await findSmartForm(searchTerm, formsData);
-      if (result) {
-        setAiSuggestion(result);
-      }
-    } catch(err) {
-      console.error(err);
-    } finally {
-      setIsSearchingAi(false);
-    }
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    
+    // Add custom font placeholder (standard PDF Fonts don't support Arabic well without extra files)
+    // For this prototype, we'll use English labels but prompt values will be Arabic
+    
+    doc.setFontSize(22);
+    doc.text(selectedTemplate?.title || 'Report', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Establishment: ${formData.establishment}`, 20, 35);
+    doc.text(`Date: ${formData.date}`, 20, 42);
+    doc.text(`Reference: ${formData.reference}`, 20, 49);
+    
+    doc.line(20, 55, 190, 55);
+    
+    doc.text('Details:', 20, 65);
+    doc.text(formData.content, 20, 75, { maxWidth: 170 });
+    
+    const tableData = formData.items.map(item => [item.name, item.quantity, item.condition]);
+    autoTable(doc, {
+      startY: 100,
+      head: [['Item Name', 'Quantity', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [43, 61, 34] }
+    });
+    
+    doc.save(`${selectedTemplate?.id || 'doc'}.pdf`);
   };
-
-  const clearAiSearch = () => {
-    setAiSuggestion(null);
-    setSearchTerm('');
-  };
-
-  const getSuggestedForm = () => {
-    if (!aiSuggestion) return null;
-    return FORM_TEMPLATES.find(f => f.path === aiSuggestion.recommendedPath);
-  };
-
-  const suggestedForm = getSuggestedForm();
-
-  const stats = [
-    { label: 'النماذج المتاحة', value: FORM_TEMPLATES.length.toString(), icon: BookOpen, color: 'bg-primary/10' },
-    { label: 'الاعتماد', value: '100%', icon: CheckCircle, color: 'bg-primary/5' },
-    { label: 'التحديث', value: '2026', icon: Clock, color: 'bg-tertiary/10' },
-    { label: 'معدل الرقمنة', value: '84%', icon: Sparkles, color: 'bg-secondary-container' },
-  ];
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto px-6 pb-24 rtl font-sans" dir="rtl">
-      {/* Header */}
-      <header className="relative flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-4">
-        <div className="text-right space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-full text-primary text-xs font-black uppercase tracking-widest mb-2">
-            <Sparkles size={14} />
-            المولد الذكي للوثائق الرسمية
+    <div className="max-w-7xl mx-auto px-6 pb-32 rtl" dir="rtl">
+      <Breadcrumbs />
+      
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-tertiary">
+            <Sparkles size={24} />
+            <span className="text-[10px] font-black uppercase tracking-widest">توليد مستندات ذكي</span>
           </div>
-          <h1 className="text-5xl font-black text-primary tracking-tighter font-serif">نماذج العمل والمحاضر</h1>
-          <p className="text-on-surface/60 text-xl font-bold">بوابة استخراج الوثائق الرسمية للمخبر، معتمدة وجاهزة للطباعة.</p>
+          <h1 className="text-4xl font-black text-primary tracking-tighter">المولد الذكي للنماذج</h1>
+          <p className="text-secondary/70 text-lg font-bold">إنشاء وثائق رسمية مطابقة لمعايير وزارة التربية الوطنية.</p>
         </div>
-        
-        <div className="flex items-center gap-4 relative z-10 w-full md:w-auto">
-          <div className="relative w-full md:w-96 flex">
-            <div className="relative flex-1">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface/40" size={20} />
-              <input 
-                type="text" 
-                placeholder="ابحث عن نموذج أو اسأل الذكاء الاصطناعي..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
-                className="w-full bg-white border border-outline/10 rounded-r-2xl pr-12 pl-4 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-              />
-            </div>
-            <button 
-              onClick={handleAiSearch}
-              disabled={isSearchingAi || !searchTerm.trim()}
-              className="bg-primary text-on-primary px-6 rounded-l-2xl font-black flex items-center justify-center transition-all hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isSearchingAi ? <Loader className="animate-spin" size={20} /> : <Sparkles size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Decorative elements */}
-        <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+        <button 
+          onClick={() => navigate(-1)}
+          className="p-4 hover:bg-surface-container rounded-full text-secondary transition-all"
+        >
+          <ArrowLeft size={28} />
+        </button>
       </header>
 
-      {/* AI Suggestion Banner */}
-      <AnimatePresence>
-        {aiSuggestion && suggestedForm && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-primary/10 border-2 border-primary/20 rounded-[32px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative">
-              <div className="flex items-start gap-4 p-4">
-                <div className="p-3 bg-white text-primary rounded-2xl shadow-sm mt-1">
-                  <Sparkles size={24} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Templates Picker */}
+        <div className="lg:col-span-4 space-y-4">
+          <h3 className="text-xs font-black text-secondary/40 uppercase tracking-widest mr-4">اختر النموذج المطلوب</h3>
+          <div className="grid grid-cols-1 gap-4">
+            {TEMPLATES.map((tmpl) => (
+              <button
+                key={tmpl.id}
+                onClick={() => setSelectedTemplate(tmpl)}
+                className={cn(
+                  "p-6 rounded-[32px] border-2 text-right transition-all group relative overflow-hidden",
+                  selectedTemplate?.id === tmpl.id 
+                    ? "border-primary bg-primary/5 shadow-xl -translate-y-1" 
+                    : "border-outline/5 bg-white hover:border-primary/20"
+                )}
+              >
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", tmpl.color)}>
+                  <tmpl.icon size={28} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black text-primary mb-2">اقتراح المساعد الذكي:</h3>
-                  <p className="text-sm font-bold text-on-surface/80 leading-relaxed max-w-2xl">{aiSuggestion.reasoning}</p>
-                  
-                  <div className="mt-6 flex flex-col md:flex-row p-4 bg-white/60 rounded-2xl border border-white items-center gap-4">
-                    <suggestedForm.icon className="text-primary" size={32} />
-                    <div className="flex-1 text-center md:text-right">
-                      <h4 className="font-black text-primary">{suggestedForm.title}</h4>
-                      <p className="text-xs text-on-surface/60 font-bold mt-1">{suggestedForm.desc}</p>
+                <h4 className="text-xl font-black text-primary mb-1">{tmpl.title}</h4>
+                <p className="text-xs font-bold text-secondary/60 leading-relaxed">{tmpl.description}</p>
+                
+                {selectedTemplate?.id === tmpl.id && (
+                  <div className="absolute top-6 left-6 text-primary">
+                    <CheckCircle2 size={24} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Editor Area */}
+        <div className="lg:col-span-8">
+          <AnimatePresence mode="wait">
+            {selectedTemplate ? (
+              <motion.div 
+                key={selectedTemplate.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-[40px] border border-outline/10 shadow-sm overflow-hidden flex flex-col min-h-[600px]"
+              >
+                <div className="p-8 border-b border-outline/5 bg-surface-container-low/30 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className={cn("p-2.5 rounded-xl", selectedTemplate.color)}>
+                      <selectedTemplate.icon size={20} />
                     </div>
-                    <Link to={suggestedForm.path} className="px-6 py-2 bg-primary text-on-primary rounded-xl font-black text-xs hover:scale-105 active:scale-95 transition-all shadow-md flex items-center gap-2">
-                       فتح النموذج المقترح
-                       <ArrowRight size={14} />
-                    </Link>
+                    <h3 className="text-xl font-black text-primary">{selectedTemplate.title}</h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={handleExportPDF} className="bg-primary text-on-primary px-6 py-3 rounded-full font-black text-sm flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-primary/10">
+                      <Download size={18} />
+                      تصدير PDF
+                    </button>
+                    <button onClick={() => window.print()} className="p-3 bg-white border border-outline/10 rounded-full hover:bg-surface-container transition-all">
+                      <Printer size={20} />
+                    </button>
                   </div>
                 </div>
-              </div>
-              <button 
-                onClick={clearAiSearch} 
-                className="absolute top-6 left-6 text-primary/40 hover:text-primary transition-colors text-sm font-bold underline"
-              >
-                إغلاق
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-8">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className={cn(
-              "p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-outline/5 transition-all group relative overflow-hidden shadow-sm hover:shadow-md bg-white",
-            )}
-          >
-            <div className={cn("absolute top-0 left-0 w-24 h-24 rounded-br-[80px] -ml-6 -mt-6 opacity-50 group-hover:scale-150 transition-transform duration-700", stat.color)} />
-            <div className="relative z-10 flex justify-between items-start mb-6">
-              <div className="p-4 bg-surface-container-low rounded-2xl shadow-sm text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                <stat.icon size={24} />
-              </div>
-            </div>
-            <div className="relative z-10">
-              <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest mb-1">{stat.label}</p>
-              <span className="text-3xl font-black tracking-tighter inline-block text-primary">{stat.value}</span>
-            </div>
-          </motion.div>
-        ))}
-      </section>
+                <div className="p-10 space-y-10 flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-secondary/60 uppercase mr-2 tracking-widest">المؤسسة التربوية</label>
+                       <input className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-6 py-4 font-bold outline-none focus:ring-2 focus:ring-primary/20" value={formData.establishment} onChange={e => setFormData({...formData, establishment: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-secondary/60 uppercase mr-2 tracking-widest">التاريخ</label>
+                         <input type="date" className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-6 py-4 font-bold outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-secondary/60 uppercase mr-2 tracking-widest">المرجع</label>
+                         <input className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-6 py-4 font-bold outline-none" value={formData.reference} onChange={e => setFormData({...formData, reference: e.target.value})} />
+                      </div>
+                    </div>
+                  </div>
 
-      {/* Templates Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-        <AnimatePresence>
-          {filteredForms.map((template, i) => {
-            const Icon = template.icon;
-            return (
-              <motion.div
-                key={template.title}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white p-8 rounded-[40px] border border-outline/5 shadow-md hover:shadow-xl hover:border-primary/20 transition-all duration-500 group flex flex-col h-full relative overflow-hidden cursor-pointer"
-              >
-                <div className="absolute top-0 right-0 w-2 h-full bg-transparent group-hover:bg-primary transition-colors" />
-                <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500", template.bg, template.color)}>
-                  <Icon size={32} />
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-black text-secondary/60 uppercase mr-2 tracking-widest">البنود / الوسائل المعنية</label>
+                      <button 
+                        onClick={() => setFormData({...formData, items: [...formData.items, { name: '', quantity: '', condition: 'سليم' }]})}
+                        className="text-primary text-xs font-black flex items-center gap-2 hover:translate-x-[-4px] transition-all"
+                      >
+                         <Plus size={16} />
+                         إضافة سطر
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {formData.items.map((item, idx) => (
+                        <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-4 rounded-3xl border border-outline/5">
+                           <input placeholder="اسم الوسيلة" className="bg-white border border-outline/10 rounded-xl px-4 py-2 text-sm font-bold" value={item.name} onChange={e => {
+                             const newItems = [...formData.items];
+                             newItems[idx].name = e.target.value;
+                             setFormData({...formData, items: newItems});
+                           }} />
+                           <input placeholder="الكمية" className="bg-white border border-outline/10 rounded-xl px-4 py-2 text-sm font-bold" value={item.quantity} onChange={e => {
+                             const newItems = [...formData.items];
+                             newItems[idx].quantity = e.target.value;
+                             setFormData({...formData, items: newItems});
+                           }} />
+                           <div className="flex gap-2">
+                             <select className="flex-1 bg-white border border-outline/10 rounded-xl px-4 py-2 text-xs font-bold" value={item.condition} onChange={e => {
+                               const newItems = [...formData.items];
+                               newItems[idx].condition = e.target.value;
+                               setFormData({...formData, items: newItems});
+                             }}>
+                               <option value="سليم">سليم</option>
+                               <option value="تالف">تالف</option>
+                               <option value="مفقود">مفقود</option>
+                               <option value="يحتاج صيانة">يحتاج صيانة</option>
+                             </select>
+                             {formData.items.length > 1 && (
+                               <button onClick={() => setFormData({...formData, items: formData.items.filter((_, i) => i !== idx)})} className="p-2 text-error hover:bg-error/10 rounded-lg">
+                                 <X size={18} />
+                               </button>
+                             )}
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-secondary/60 uppercase mr-2 tracking-widest">نص التقرير / الطلب</label>
+                    <textarea 
+                      className="w-full bg-surface-container-low border border-outline/10 rounded-[32px] px-8 py-6 font-bold outline-none focus:ring-2 focus:ring-primary/20 min-h-[200px] resize-none"
+                      placeholder="اكتب تفاصيل المحضر هنا..."
+                      value={formData.content}
+                      onChange={e => setFormData({...formData, content: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <h4 className="text-2xl font-black text-primary mb-3">{template.title}</h4>
-                <p className="text-on-surface/60 font-bold mb-8 leading-relaxed flex-grow">{template.desc}</p>
-                <div className="flex justify-between items-center pt-6 border-t border-outline/5 mt-auto">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40 bg-surface-container-low px-3 py-1 rounded-full">{template.type}</span>
-                  <Link to={template.path} className="text-on-primary bg-primary px-4 py-2 rounded-xl font-black text-xs hover:bg-primary/90 flex items-center gap-2 shadow-sm transition-all active:scale-95">
-                    فتح النموذج
-                  </Link>
+
+                <div className="p-8 border-t border-outline/5 bg-primary/5 flex justify-between items-center">
+                  <div className="flex items-center gap-3 text-primary">
+                    <Info size={18} />
+                    <p className="text-xs font-bold text-secondary">يمكنك استخدام Gemini للمساعدة في صياغة النص الإداري بشكل احترافي.</p>
+                  </div>
+                  <button className="flex items-center gap-2 text-sm font-black text-tertiary hover:scale-105 transition-all">
+                    <Sparkles size={18} />
+                    تحسين النص بالذكاء الاصطناعي
+                  </button>
                 </div>
               </motion.div>
-            )
-          })}
-        </AnimatePresence>
-        
-        {filteredForms.length === 0 && (
-          <div className="col-span-full py-12 text-center text-on-surface/40 font-bold">
-            <FileText size={48} className="mx-auto mb-4 opacity-50" />
-            <p>لم يتم العثور على أي نموذج يطابق بحثك.</p>
-          </div>
-        )}
-      </section>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-20 bg-surface-container-low/20 rounded-[40px] border-2 border-dashed border-outline/10">
+                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-secondary/20 mb-8 border border-outline/5 shadow-inner">
+                   <PenTool size={48} />
+                </div>
+                <h3 className="text-2xl font-black text-primary mb-4">جاهز للبدء؟</h3>
+                <p className="text-secondary/60 font-bold max-w-sm">اختر نموذجاً من القائمة الجانبية للبدء في تعبئة البيانات وتصدير الملف الرسمي.</p>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }

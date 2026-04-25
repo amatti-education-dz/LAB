@@ -40,6 +40,17 @@ export default function Login() {
   const [linkingMessage, setLinkingMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Dynamic loading of reCAPTCHA Enterprise
+    const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    if (siteKey && !document.getElementById('recaptcha-script')) {
+      const script = document.createElement('script');
+      script.id = 'recaptcha-script';
+      script.src = `https://www.google.com/recaptcha/enterprise.js?render=${siteKey}`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
     const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
     const isFB = ua.indexOf("FBAN") > -1 || ua.indexOf("FBAV") > -1;
     const isIG = ua.indexOf("Instagram") > -1;
@@ -129,7 +140,7 @@ export default function Login() {
     try {
       // Execute reCAPTCHA Enterprise
       const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
+      if (siteKey && window.grecaptcha?.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
@@ -137,10 +148,12 @@ export default function Login() {
               console.log('reCAPTCHA Enterprise token:', token);
               resolve();
             } catch (err) {
-              console.error('reCAPTCHA execution error:', err);
-              resolve(); // Continue anyway to not block login if reCAPTCHA fails
+              console.warn('reCAPTCHA execution failed, continuing login:', err);
+              resolve(); 
             }
           });
+          // Safety timeout
+          setTimeout(resolve, 3000);
         });
       }
 
@@ -194,7 +207,7 @@ export default function Login() {
     try {
       // Execute reCAPTCHA Enterprise
       const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
+      if (siteKey && window.grecaptcha?.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
@@ -202,10 +215,11 @@ export default function Login() {
               console.log('reCAPTCHA Enterprise token (Google):', token);
               resolve();
             } catch (err) {
-              console.error('reCAPTCHA execution error (Google):', err);
+              console.warn('reCAPTCHA execution failed (Google), continuing:', err);
               resolve();
             }
           });
+          setTimeout(resolve, 3000);
         });
       }
 
@@ -296,7 +310,7 @@ export default function Login() {
     try {
       // Execute reCAPTCHA Enterprise
       const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-      if (siteKey && window.grecaptcha && window.grecaptcha.enterprise) {
+      if (siteKey && window.grecaptcha?.enterprise) {
         await new Promise<void>((resolve) => {
           window.grecaptcha.enterprise.ready(async () => {
             try {
@@ -304,10 +318,11 @@ export default function Login() {
               console.log('reCAPTCHA Enterprise token (Facebook):', token);
               resolve();
             } catch (err) {
-              console.error('reCAPTCHA execution error (Facebook):', err);
+              console.warn('reCAPTCHA execution failed (Facebook), continuing:', err);
               resolve();
             }
           });
+          setTimeout(resolve, 3000);
         });
       }
 

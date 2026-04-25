@@ -21,6 +21,7 @@ import {
   Map,
   Monitor,
   Package,
+  Folder,
   BookOpen,
   Sun,
   Moon,
@@ -32,6 +33,8 @@ import {
   Calculator,
   Wrench,
   ChevronDown,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
@@ -41,6 +44,7 @@ import { doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
 import { db, getUserCollection } from '../firebase';
 import GlobalSearch from './GlobalSearch';
 import Breadcrumbs from './Breadcrumbs';
+import NotificationCenter from './NotificationCenter';
 import logo from '/ministry-logo.png';
 
 const navigationGroups = [
@@ -68,7 +72,11 @@ const navigationGroups = [
     title: 'المتابعة البيداغوجية',
     icon: BookOpen,
     items: [
+      { name: 'مساعد مخبري (AI)', path: '/lab-assistant', icon: Sparkles },
       { name: 'لوحة التحكم البيداغوجية', path: '/pedagogical', icon: BookOpen },
+      { name: 'المكتبة الرقمية', path: '/document-library', icon: Folder },
+      { name: 'جدول استعمال المخابر', path: '/lab-schedule', icon: Clock },
+      { name: 'سجل التجارب المخبرية', path: '/lab-experiments', icon: FlaskConical },
       { name: 'المولد الذكي للنماذج', path: '/smart-forms', icon: FileText },
       { name: 'تسيير الأفواج', path: '/student-groups', icon: Users },
       { name: 'الأرشيف الرقمي', path: '/archive', icon: Archive },
@@ -80,6 +88,7 @@ const navigationGroups = [
     icon: Settings,
     items: [
       { name: 'الإعدادات الشخصية', path: '/settings', icon: Settings },
+      { name: 'مركز النسخ والبيانات', path: '/backup-center', icon: Database },
       { name: 'الميزانية والطلبيات', path: '/budget-purchases', icon: Wallet },
     ]
   },
@@ -92,9 +101,6 @@ export default function Layout() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
-  const [lowStockCount, setLowStockCount] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
@@ -121,12 +127,24 @@ export default function Layout() {
     const fetchUserRole = async () => {
       if (auth.currentUser) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-          if (userDoc.exists()) {
-            setUserRole(userDoc.data().role || 'مساعد مخبري');
-          } else {
-            setUserRole('مساعد مخبري');
+          // Fetch both user record and settings
+          const [userDoc, settingsDoc] = await Promise.all([
+            getDoc(doc(db, 'users', auth.currentUser.uid)),
+            getDoc(doc(db, 'settings', auth.currentUser.uid))
+          ]);
+
+          let role = 'مساعد مخبري';
+          
+          if (settingsDoc.exists()) {
+            const settingsData = settingsDoc.data();
+            const job = settingsData.jobTitle || settingsData.grade || role;
+            const cycle = settingsData.cycle ? ` — ${settingsData.cycle}` : '';
+            role = `${job}${cycle}`;
+          } else if (userDoc.exists()) {
+            role = userDoc.data().role || role;
           }
+          
+          setUserRole(role);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           if (errorMessage.includes('the client is offline')) {
@@ -136,29 +154,12 @@ export default function Layout() {
           }
           setUserRole('مساعد مخبري');
         }
+      } else {
+        setUserRole(null);
       }
     };
     fetchUserRole();
-  }, []);
-
-  useEffect(() => {
-    if (!auth.currentUser) return;
-
-    // Listen for low stock chemicals
-    const chemQ = query(getUserCollection('chemicals'), where('quantity', '<=', 5));
-    const unsubChem = onSnapshot(chemQ, (snap) => {
-      const lowChems = snap.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'chemical' }));
-      setNotifications(prev => {
-        const filtered = prev.filter(n => n.type !== 'chemical');
-        return [...filtered, ...lowChems];
-      });
-      setLowStockCount(prev => prev + snap.docs.length);
-    });
-
-    return () => {
-      unsubChem();
-    };
-  }, []);
+  }, [auth.currentUser]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -249,6 +250,7 @@ export default function Layout() {
                               <Link
                                 key={item.path}
                                 to={item.path}
+                                onClick={() => setIsSidebarOpen(false)}
                                 className={cn(
                                   "flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-200 group/item",
                                   isActive 
@@ -268,7 +270,12 @@ export default function Layout() {
                 ) : (
                   <div className="flex flex-col items-center py-2">
                     <button
-                      onClick={() => setIsSidebarOpen(true)}
+                      onClick={() => {
+                        if (!isSidebarOpen) {
+                          setIsSidebarOpen(true);
+                          setExpandedGroups([group.title]);
+                        }
+                      }}
                       title={group.title}
                       className={cn(
                         "p-3 rounded-xl transition-all duration-200 hover:scale-110",
@@ -340,26 +347,10 @@ export default function Layout() {
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary" size={18} />
             </div>
             <div className="flex items-center gap-3 relative" ref={profileMenuRef}>
+              <NotificationCenter />
               <button 
-                onClick={() => {
-                  setIsNotificationsMenuOpen(!isNotificationsMenuOpen);
-                  setIsProfileMenuOpen(false);
-                }}
-                className="p-2 hover:bg-secondary-container/50 rounded-full transition-colors relative"
-              >
-                <Bell size={20} className="text-primary" />
-                {lowStockCount > 0 && (
-                  <span className="absolute top-2 right-2 w-4 h-4 bg-error text-on-error text-[8px] rounded-full flex items-center justify-center font-black">
-                    {lowStockCount}
-                  </span>
-                )}
-              </button>
-              <button 
-                onClick={() => {
-                  setIsProfileMenuOpen(!isProfileMenuOpen);
-                  setIsNotificationsMenuOpen(false);
-                }}
-                className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/10 hover:border-primary/30 transition-all active:scale-95"
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/10 hover:border-primary/30 transition-all active:scale-95 ml-2"
               >
                 <img 
                   className="w-full h-full object-cover" 
@@ -368,47 +359,6 @@ export default function Layout() {
                   referrerPolicy="no-referrer"
                 />
               </button>
-
-              <AnimatePresence>
-                {isNotificationsMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute left-10 lg:left-14 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-surface-container-highest rounded-2xl shadow-xl border border-outline-variant p-2 z-50 text-right"
-                  >
-                    <div className="px-4 py-3 border-b border-outline-variant/50 mb-2 flex justify-between items-center bg-surface sticky top-0 z-10 rounded-xl">
-                      <p className="text-sm font-black text-primary">الإشعارات</p>
-                      {notifications.length > 0 && (
-                        <span className="bg-error/10 text-error px-2 py-0.5 rounded-full text-xs font-bold">{notifications.length} جديد</span>
-                      )}
-                    </div>
-                    {notifications.length === 0 ? (
-                      <div className="p-8 flex flex-col items-center justify-center text-secondary">
-                        <Bell size={32} className="opacity-20 mb-2" />
-                        <p className="text-sm">لا توجد إشعارات جديدة</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {notifications.map((notif, i) => (
-                          <div key={i} className="p-3 bg-error/5 hover:bg-error/10 rounded-xl transition-colors flex items-start gap-3">
-                             <div className="p-2 bg-error/10 text-error rounded-full shrink-0"><ShieldAlert size={16}/></div>
-                             <div>
-                                <p className="text-sm font-bold text-primary">{notif.nameAr}</p>
-                                <p className="text-xs text-secondary mt-1">المخزون منخفض: <span className="font-bold text-error">{notif.quantity}</span> كمية متبقية</p>
-                             </div>
-                          </div>
-                        ))}
-                        {notifications.length > 0 && (
-                          <Link to="/inventory" onClick={() => setIsNotificationsMenuOpen(false)} className="w-full mt-2 py-2 text-center text-xs font-bold text-primary hover:bg-primary/5 rounded-lg transition-colors border border-primary/20">
-                            عرض المخزون بالكامل
-                          </Link>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               <AnimatePresence>
                 {isProfileMenuOpen && (
@@ -420,11 +370,13 @@ export default function Layout() {
                   >
                     <div className="px-4 py-3 border-b border-outline-variant/50 mb-2">
                       <p className="text-sm font-bold text-primary truncate">{auth.currentUser?.displayName || 'مستخدم'}</p>
-                      <p className="text-[10px] text-secondary truncate">{auth.currentUser?.email || auth.currentUser?.phoneNumber}</p>
+                      <p className="text-[10px] text-secondary truncate mb-2">{auth.currentUser?.email || auth.currentUser?.phoneNumber}</p>
                       {userRole && (
-                        <span className="mt-1 inline-block bg-primary/10 text-primary text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
-                          {userRole}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-black border border-primary/5 shadow-sm">
+                            {userRole}
+                          </span>
+                        </div>
                       )}
                     </div>
                     

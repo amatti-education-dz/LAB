@@ -42,6 +42,19 @@ import { motion } from 'motion/react';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '../lib/utils';
 
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie
+} from 'recharts';
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,16 +67,11 @@ export default function Dashboard() {
     teachers: 0,
     incidents: 0,
     lowStock: 0,
-    brokenEquip: 0
+    brokenEquip: 0,
+    experiments: 0
   });
 
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
+  const [graphData, setGraphData] = useState<any[]>([]);
   const [recentReports, setRecentReports] = useState<any[]>([]);
 
   useEffect(() => {
@@ -76,11 +84,26 @@ export default function Dashboard() {
       setRecentReports(reports);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'reports'));
 
+    const unsubExps = onSnapshot(getUserCollection('experiment_logs'), (snap) => {
+      setCounts(prev => ({ ...prev, experiments: snap.size }));
+      
+      // Calculate last 7 days chart data
+      const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+      const stats = days.map(day => ({ name: day, count: 0 }));
+      
+      snap.docs.forEach(doc => {
+        const d = doc.data().date?.toDate();
+        if (d) {
+          const dayName = d.toLocaleDateString('ar-DZ', { weekday: 'long' });
+          const idx = days.indexOf(dayName);
+          if (idx !== -1) stats[idx].count++;
+        }
+      });
+      setGraphData(stats);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'experiment_logs'));
+
     const unsubEquip = onSnapshot(getUserCollection('equipment'), (snap) => {
-      const broken = snap.docs.filter(doc => {
-        const status = doc.data().status;
-        return status === 'broken' || status === 'maintenance';
-      }).length;
+      const broken = snap.docs.filter(doc => ['broken', 'maintenance'].includes(doc.data().status)).length;
       setCounts(prev => ({ ...prev, equipment: snap.size, brokenEquip: broken }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'equipment'));
 
@@ -99,6 +122,7 @@ export default function Dashboard() {
 
     return () => {
       unsubReports();
+      unsubExps();
       unsubEquip();
       unsubChem();
       unsubTeachers();
@@ -659,7 +683,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Activity Preview */}
+      {/* Activity Preview with Recharts */}
       <section className="bg-white rounded-[50px] p-12 lg:p-16 flex flex-col lg:flex-row gap-16 items-center border border-outline/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full -ml-64 -mt-64 blur-[100px] pointer-events-none" />
         
@@ -668,63 +692,71 @@ export default function Dashboard() {
             <TrendingUp size={16} />
             تحليل البيانات الذكي
           </div>
-          <h2 className="text-[30px] leading-[30px] font-black text-primary tracking-tight leading-tight">نظرة عامة على النشاط <br/>البيداغوجي للمؤسسة</h2>
-          <p className="text-on-surface/60 max-w-xl leading-relaxed font-medium text-xl">يتم تحديث الإحصائيات تلقائياً بناءً على التقارير المدخلة من قبل المخبريين والأساتذة. يمكنك تصدير التقارير الشهرية والسنوية بنقرة واحدة لتحليل الأداء العام للمخبر.</p>
-          <div className="flex flex-wrap gap-6 pt-8">
+          <h2 className="text-[30px] font-black text-primary tracking-tight leading-tight">معدل النشاط البيداغوجي <br/>الأسبوعي</h2>
+          
+          <div className="space-y-4">
+             <div className="flex items-center gap-4 bg-tertiary/5 p-4 rounded-2xl border border-tertiary/10">
+                <Sparkles size={20} className="text-tertiary" />
+                <p className="text-sm font-bold text-secondary">
+                   {counts.experiments > 0 
+                    ? `استناداً إلى ${counts.experiments} تجربة مسجلة، نلاحظ كثافة عالية في النشاط العملي خلال منتصف الأسبوع.`
+                    : "بادر بتسجيل أول تجربة مخبرية لتفعيل نظام التحليلات الذكي."}
+                </p>
+             </div>
+             
+             {counts.lowStock > 0 && (
+               <div className="flex items-center gap-4 bg-error/5 p-4 rounded-2xl border border-error/10">
+                  <AlertTriangle size={20} className="text-error" />
+                  <p className="text-sm font-bold text-error">
+                     توصية AI: مراجعة طلبات التموين لـ {counts.lowStock} مواد شارفت على الانتهاء لتفادي انقطاع الدروس.
+                  </p>
+               </div>
+             )}
+          </div>
+
+          <div className="flex flex-wrap gap-4 pt-4">
             <button 
-              onClick={handleExportTemplate}
-              className="bg-primary text-on-primary px-12 py-5 rounded-full font-black shadow-2xl shadow-primary/30 hover:bg-primary-container hover:shadow-primary/40 transition-all active:scale-95 text-lg flex items-center gap-3"
+              onClick={() => navigate('/lab-experiments')}
+              className="bg-primary text-on-primary px-8 py-4 rounded-full font-black shadow-xl shadow-primary/20 hover:scale-105 transition-all text-sm flex items-center gap-2"
             >
-              <Database size={24} />
-              تحميل نموذج الجرد (XLS)
-            </button>
-            <button 
-              onClick={handleSmartUpdate}
-              disabled={isSmartUpdating}
-              className="bg-white text-primary border-2 border-primary/20 px-12 py-5 rounded-full font-black hover:bg-primary/5 hover:border-primary transition-all active:scale-95 text-lg flex items-center gap-3"
-            >
-              {isSmartUpdating ? (
-                <RefreshCw size={24} className="animate-spin" />
-              ) : (
-                <Sparkles size={24} />
-              )}
-              تحديث ذكي للكل
+              استعراض سجل التجارب
             </button>
           </div>
         </div>
         
-        <div className="w-full lg:w-2/5 aspect-[4/3] rounded-[48px] bg-surface-container-low overflow-hidden shadow-2xl border border-outline/10 relative group flex items-center justify-center p-8">
-          <div className="w-full h-full relative flex items-end justify-between gap-2">
-            {[40, 70, 45, 90, 65, 85, 75].map((height, i) => (
-              <motion.div
-                key={i}
-                initial={{ height: 0 }}
-                animate={{ height: `${height}%` }}
-                transition={{ delay: i * 0.1, duration: 1, ease: "easeOut" }}
-                className="flex-1 bg-primary/20 rounded-t-2xl relative group/bar"
-              >
-                <div className="absolute inset-0 bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity rounded-t-2xl" />
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-black text-primary opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                  {height}%
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
-          <div className="absolute bottom-8 right-8 left-8 bg-white/60 backdrop-blur-xl p-8 rounded-[32px] border border-white/30 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-black text-primary uppercase tracking-[0.3em]">معدل الاستخدام الأسبوعي</span>
-              <span className="text-xl font-black text-primary">84%</span>
-            </div>
-            <div className="w-full bg-primary/10 h-3 rounded-full overflow-hidden shadow-inner">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: "84%" }}
-                transition={{ duration: 1.5, delay: 0.5, ease: "circOut" }}
-                className="bg-primary h-full rounded-full shadow-lg"
-              />
-            </div>
-          </div>
+        <div className="w-full lg:w-2/5 h-[400px] bg-surface-container-low rounded-[48px] overflow-hidden shadow-2xl border border-outline/10 relative p-8">
+           <ResponsiveContainer width="100%" height="100%">
+             <BarChart data={graphData}>
+               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e2dc" />
+               <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#2b3d22', fontWeight: 'bold', fontSize: 12 }} 
+                reversed
+               />
+               <YAxis hide />
+               <RechartsTooltip 
+                  cursor={{ fill: 'rgba(43, 61, 34, 0.05)' }} 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white p-3 rounded-xl shadow-xl border border-outline/10">
+                          <p className="text-[10px] font-black uppercase text-secondary/40 tracking-widest">{payload[0].payload.name}</p>
+                          <p className="text-lg font-black text-primary">{payload[0].value} حصص</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+               />
+               <Bar dataKey="count" radius={[10, 10, 10, 10]} barSize={40}>
+                 {graphData.map((entry, index) => (
+                   <Cell key={`cell-${index}`} fill={index === 3 ? '#2b3d22' : '#2b3d2266'} />
+                 ))}
+               </Bar>
+             </BarChart>
+           </ResponsiveContainer>
         </div>
       </section>
     </div>

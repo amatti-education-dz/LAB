@@ -1,58 +1,91 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ------------------------------------------------------------
-    // GLOBAL HELPERS
-    // ------------------------------------------------------------
-    function isSignedIn() {
-      return request.auth != null;
+    
+    // -------------------------------------------------------------------------
+    // GLOBALS & HELPERS
+    // -------------------------------------------------------------------------
+
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function isOwner(userId) { 
+      return isSignedIn() && request.auth.uid == userId; 
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.size() > 0;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // -------------------------------------------------------------------------
+    // ENTITY VALIDATORS (PILLAR 2)
+    // -------------------------------------------------------------------------
+
+    function isValidChemical(data) {
+      return data.keys().hasAll(['nameAr', 'quantity', 'unit']) &&
+             data.nameAr is string && data.nameAr.size() > 0 &&
+             data.quantity is number;
     }
 
-    function isMasterUser() {
-      return isSignedIn() && request.auth.token.role == 'admin';
+    function isValidEquipment(data) {
+      return data.keys().hasAll(['name', 'type', 'status']) &&
+             data.name is string &&
+             data.type in ['glassware', 'tech', 'other'] &&
+             data.status in ['functional', 'maintenance', 'broken'];
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    // -------------------------------------------------------------------------
+    // SETTINGS (PILLAR 1)
+    // -------------------------------------------------------------------------
+
+    match /settings/{userId} {
+      allow read, write: if isOwner(userId);
     }
 
-    // ------------------------------------------------------------
-    // DEFAULT DENY
-    // ------------------------------------------------------------
-    match /{document=**} {
-      allow read, write: if isMasterUser();
+    // -------------------------------------------------------------------------
+    // USER SANDBOXES (PILLAR 1 & 6)
+    // -------------------------------------------------------------------------
+
+    match /users/{userId} {
+      // Allow the user to document their own profile/settings
+      allow list: if isOwner(userId);
+      allow get, write: if isOwner(userId) && isValidId(userId);
+      
+      // All user-owned collections follow the same list/get split (PILLAR 3)
+      match /{collection}/{docId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(docId);
+        
+        // Base write for non-validated collections
+        allow write: if isOwner(userId) && isValidId(docId);
+        
+        // Hardened writes for specific collections (PILLAR 4)
+        allow create, update: if isOwner(userId) && isValidId(docId) && (
+          (collection == 'chemicals' && isValidChemical(incoming())) ||
+          (collection == 'equipment' && isValidEquipment(incoming())) ||
+          (collection != 'chemicals' && collection != 'equipment')
+        );
+      }
+      
+      // Support for deeper paths (e.g. notifications)
+      match /{collection}/{docId}/{subCollection}/{subId} {
+        allow list: if isOwner(userId);
+        allow get, write: if isOwner(userId) && isValidId(subId);
+      }
     }
 
-    // ------------------------------------------------------------
-    // CONNECTION TEST PATH
-    // ------------------------------------------------------------
+    // Connection test path
     match /_connection_test_/{docId} {
       allow read, write: if isSignedIn();
     }
 
-    // ------------------------------------------------------------
-    // USER DATA (SOPHISTICATED SCOPING)
-    // ------------------------------------------------------------
-    match /users/{userId} {
-      // Allow the user to read/write their own root document
-      allow get, write: if isOwner(userId);
-      
-      // Allow the user to read/write any document in any of their own subcollections
-      match /{document=**} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-    
-    // ------------------------------------------------------------
-    // SETTINGS DATA
-    // ------------------------------------------------------------
-    match /settings/{userId} {
-      // Allow the user to read/write their own settings document
-      allow get, write: if isOwner(userId);
+    // Default Deny (PILLAR 0)
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

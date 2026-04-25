@@ -20,6 +20,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { analyzeIncident } from '../services/geminiService';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { FileText, Sparkles, Download, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 
 interface SafetyItem {
   id: string;
@@ -34,10 +38,20 @@ interface Incident {
   id: string;
   date: any;
   type: string;
-  status: 'تم التعامل' | 'قيد المتابعة' | 'جديد';
+  status: 'تم التعامل' | 'قيد المتابعة' | 'جديد' | 'تحت التحقيق';
   reporter: string;
   severity: 'low' | 'medium' | 'high';
   description?: string;
+  location?: string;
+  injured?: string;
+  witnesses?: string;
+  firstAid?: string;
+  analysis?: {
+    rootCause: string;
+    suggestedActions: string[];
+    safetyTipsAr: string;
+    longTermMitigation: string;
+  };
 }
 
 const iconMap = {
@@ -148,10 +162,81 @@ export default function Safety() {
         createdAt: serverTimestamp()
       });
       setIsLogIncidentModalOpen(false);
-      setNewIncident({ type: '', status: 'جديد', reporter: '', severity: 'medium', description: '' });
+      setNewIncident({ type: '', status: 'جديد', reporter: '', severity: 'medium', description: '', location: '', injured: '', witnesses: '', firstAid: '' });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'incident_logs');
     }
+  };
+
+  const handleRunInvestigation = async (incident: Incident) => {
+    try {
+      await updateDoc(doc(getUserCollection('incident_logs'), incident.id), {
+        status: 'تحت التحقيق',
+        updatedAt: serverTimestamp()
+      });
+      
+      const analysis = await analyzeIncident(incident);
+      if (analysis) {
+        await updateDoc(doc(getUserCollection('incident_logs'), incident.id), {
+          analysis,
+          status: 'قيد المتابعة',
+          updatedAt: serverTimestamp()
+        });
+        // Update local state if selected
+        if (selectedIncident?.id === incident.id) {
+          setSelectedIncident({ ...incident, analysis, status: 'قيد المتابعة' });
+        }
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `incident_logs/${incident.id}`);
+    }
+  };
+
+  const exportIncidentPDF = (incident: Incident) => {
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    
+    // Arabic support is tricky in jsPDF without custom fonts, 
+    // so we'll use English labels or assume the user has fonts if this were a production app.
+    // For this prototype, we'll create a professional structured layout.
+    
+    doc.setFontSize(22);
+    doc.text('Incident Report (PV d\'accident)', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Ref: ${incident.id.toUpperCase()}`, 20, 30);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 190, 30, { align: 'right' });
+    
+    autoTable(doc, {
+      startY: 40,
+      head: [['Field', 'Details']],
+      body: [
+        ['Type', incident.type],
+        ['Location', incident.location || 'N/A'],
+        ['Severity', incident.severity.toUpperCase()],
+        ['Reporter', incident.reporter],
+        ['Injured Persons', incident.injured || 'None reported'],
+        ['Witnesses', incident.witnesses || 'None'],
+        ['First Aid Given', incident.firstAid || 'None'],
+        ['Description', incident.description || 'N/A'],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [43, 61, 34] },
+    });
+
+    if (incident.analysis) {
+      doc.text('AI Safety Analysis & Investigation:', 20, (doc as any).lastAutoTable.finalY + 15);
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 20,
+        body: [
+          ['Root Cause', incident.analysis.rootCause],
+          ['Mitigation', incident.analysis.longTermMitigation],
+          ['Safety Tips', incident.analysis.safetyTipsAr]
+        ],
+        theme: 'striped'
+      });
+    }
+
+    doc.save(`incident_${incident.id}.pdf`);
   };
 
   const handleDeleteIncident = async (id: string) => {
@@ -461,28 +546,57 @@ export default function Safety() {
                 <h3 className="text-2xl font-black text-primary">تبليغ عن حادث</h3>
                 <button onClick={() => setIsLogIncidentModalOpen(false)} className="p-2.5 hover:bg-surface-container-high rounded-full transition-all active:scale-90"><X size={24} /></button>
               </div>
-              <form onSubmit={handleLogIncident} className="p-10 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">نوع الحادث</label>
-                  <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.type} onChange={e => setNewIncident({...newIncident, type: e.target.value})} />
+              <form onSubmit={handleLogIncident} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">نوع الحادث</label>
+                    <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.type} onChange={e => setNewIncident({...newIncident, type: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">المكان (المخبر/الجناح)</label>
+                    <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.location} onChange={e => setNewIncident({...newIncident, location: e.target.value})} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">المبلغ</label>
-                  <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.reporter} onChange={e => setNewIncident({...newIncident, reporter: e.target.value})} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">المبلغ</label>
+                    <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.reporter} onChange={e => setNewIncident({...newIncident, reporter: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">الخطورة</label>
+                    <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold appearance-none cursor-pointer" value={newIncident.severity} onChange={e => setNewIncident({...newIncident, severity: e.target.value as any})}>
+                      <option value="low">منخفضة</option>
+                      <option value="medium">متوسطة</option>
+                      <option value="high">عالية</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">الخطورة</label>
-                  <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold appearance-none cursor-pointer" value={newIncident.severity} onChange={e => setNewIncident({...newIncident, severity: e.target.value as any})}>
-                    <option value="low">منخفضة</option>
-                    <option value="medium">متوسطة</option>
-                    <option value="high">عالية</option>
-                  </select>
+                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">الأشخاص المتضررون (إن وجد)</label>
+                  <input className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.injured} onChange={e => setNewIncident({...newIncident, injured: e.target.value})} placeholder="الاسم واللقب..." />
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">الشهود</label>
+                    <input className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.witnesses} onChange={e => setNewIncident({...newIncident, witnesses: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">الإسعافات الأولية المقدمة</label>
+                    <input className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold" value={newIncident.firstAid} onChange={e => setNewIncident({...newIncident, firstAid: e.target.value})} />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">التفاصيل</label>
+                  <label className="text-xs font-black text-secondary/60 uppercase tracking-widest mr-2">وصف تفصيلي للحادث</label>
                   <textarea className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-bold min-h-[100px]" value={newIncident.description} onChange={e => setNewIncident({...newIncident, description: e.target.value})} />
                 </div>
-                <button type="submit" className="w-full bg-error text-on-error py-5 rounded-full font-black shadow-xl shadow-error/20 mt-4 hover:opacity-90 transition-all active:scale-95">إرسال التقرير</button>
+                <button type="submit" className="w-full bg-error text-on-error py-5 rounded-full font-black shadow-xl shadow-error/20 mt-4 hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2">
+                  <ShieldAlert size={20} />
+                  إرسال التقرير الرسمي
+                </button>
               </form>
             </motion.div>
           </div>
@@ -491,31 +605,92 @@ export default function Safety() {
         {selectedIncident && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedIncident(null)} className="absolute inset-0 bg-primary/20 backdrop-blur-xl" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-surface w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-outline/10 p-10">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-surface w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden border border-outline/10 p-10 max-h-[90vh] overflow-y-auto custom-scrollbar">
               <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h3 className="text-3xl font-black text-primary">{selectedIncident.type}</h3>
-                  <p className="text-secondary/60 font-bold">{(selectedIncident as any).displayDate}</p>
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert size={28} className="text-error" />
+                    <h3 className="text-3xl font-black text-primary">{selectedIncident.type}</h3>
+                  </div>
+                  <p className="text-secondary/60 font-bold mt-1">{(selectedIncident as any).displayDate} • {selectedIncident.location}</p>
                 </div>
-                <button onClick={() => setSelectedIncident(null)} className="p-2 hover:bg-surface-container-low rounded-full"><X size={24} /></button>
+                <div className="flex gap-2">
+                  <button onClick={() => exportIncidentPDF(selectedIncident)} className="p-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-full transition-all" title="تصدير PDF"><Download size={20} /></button>
+                  <button onClick={() => setSelectedIncident(null)} className="p-2.5 hover:bg-surface-container-low rounded-full transition-all"><X size={24} /></button>
+                </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline/5 transition-all hover:border-primary/20">
+                    <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest block mb-2">المبلغ والشهود</span>
+                    <p className="font-black text-primary truncate">المبلغ: {selectedIncident.reporter}</p>
+                    <p className="text-xs text-secondary mt-1 font-bold">الشهود: {selectedIncident.witnesses || 'لا يوجد'}</p>
+                 </div>
+                 <div className="p-5 bg-surface-container-low rounded-2xl border border-outline/5 transition-all hover:border-primary/20">
+                    <span className="text-[10px] font-black text-secondary/60 uppercase tracking-widest block mb-2">الإسعافات والضرر</span>
+                    <p className="font-black text-primary truncate">المتضرر: {selectedIncident.injured || 'لا يوجد'}</p>
+                    <p className="text-xs text-secondary mt-1 font-bold">الإسعاف: {selectedIncident.firstAid || 'لا يوجد'}</p>
+                 </div>
+              </div>
+
               <div className="space-y-6">
-                <div className="flex justify-between items-center p-4 bg-surface-container-low rounded-2xl">
-                  <span className="text-sm font-bold text-secondary">المبلغ:</span>
-                  <span className="font-black text-primary">{selectedIncident.reporter}</span>
+                <div className="p-6 bg-surface-container-low rounded-[24px] border border-outline/5">
+                  <span className="text-xs font-black text-secondary/60 uppercase tracking-widest block mb-3 underline decoration-primary/20 underline-offset-4">وصف الحادث</span>
+                  <p className="text-on-surface leading-relaxed font-medium whitespace-pre-wrap">{selectedIncident.description || 'لا توجد تفاصيل إضافية.'}</p>
                 </div>
-                <div className="flex justify-between items-center p-4 bg-surface-container-low rounded-2xl">
-                  <span className="text-sm font-bold text-secondary">الخطورة:</span>
-                  <span className={cn(
-                    "px-4 py-1 rounded-full text-xs font-black",
-                    selectedIncident.severity === 'high' ? "bg-error text-on-error" : selectedIncident.severity === 'medium' ? "bg-tertiary text-on-tertiary" : "bg-secondary text-white"
-                  )}>
-                    {selectedIncident.severity === 'high' ? 'عالية' : selectedIncident.severity === 'medium' ? 'متوسطة' : 'منخفضة'}
-                  </span>
-                </div>
-                <div className="p-6 bg-surface-container-low rounded-2xl">
-                  <span className="text-sm font-bold text-secondary block mb-2">التفاصيل:</span>
-                  <p className="text-on-surface leading-relaxed font-medium">{selectedIncident.description || 'لا توجد تفاصيل إضافية.'}</p>
+
+                {/* Investigation Section */}
+                <div className="space-y-4 pt-4 border-t border-outline/10">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xl font-black text-primary flex items-center gap-2">
+                      <Sparkles size={20} className="text-tertiary" />
+                      التحقيق الذكي (AI)
+                    </h4>
+                    {!selectedIncident.analysis && (
+                      <button 
+                        onClick={() => handleRunInvestigation(selectedIncident)}
+                        className="bg-tertiary text-on-tertiary px-6 py-2.5 rounded-full text-xs font-black flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-tertiary/20"
+                      >
+                        {selectedIncident.status === 'تحت التحقيق' ? 'جاري التحليل...' : 'بدء التحقيق'}
+                      </button>
+                    )}
+                  </div>
+
+                  {selectedIncident.analysis ? (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                       <div className="p-6 bg-tertiary/5 border border-tertiary/20 rounded-3xl">
+                          <span className="text-[10px] font-black text-tertiary uppercase tracking-widest block mb-2">السبب الجذري المحتمل</span>
+                          <p className="text-on-surface font-bold leading-relaxed">{selectedIncident.analysis.rootCause}</p>
+                       </div>
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-5 bg-primary/5 border border-primary/10 rounded-2xl">
+                             <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-2">إجراءات فورية</span>
+                             <ul className="text-xs space-y-1.5 list-disc list-inside font-bold text-secondary text-right">
+                                {selectedIncident.analysis.suggestedActions.map((action, i) => (
+                                  <li key={i}>{action}</li>
+                                ))}
+                             </ul>
+                          </div>
+                          <div className="p-5 bg-surface-container-high border border-outline/10 rounded-2xl">
+                             <span className="text-[10px] font-black text-secondary uppercase tracking-widest block mb-2">استراتيجية الوقاية</span>
+                             <p className="text-xs font-bold leading-relaxed">{selectedIncident.analysis.longTermMitigation}</p>
+                          </div>
+                       </div>
+
+                       <div className="p-5 bg-secondary/5 border border-secondary/20 rounded-2xl flex items-center gap-4">
+                          <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center shrink-0">
+                             <ShieldCheckIcon size={20} className="text-secondary" />
+                          </div>
+                          <p className="text-xs font-bold text-secondary italic">" {selectedIncident.analysis.safetyTipsAr} "</p>
+                       </div>
+                    </motion.div>
+                  ) : (
+                    <div className="p-12 text-center bg-surface-container-low rounded-3xl border border-dashed border-outline/20">
+                       <Sparkles size={40} className="mx-auto text-tertiary/20 mb-3" />
+                       <p className="text-sm text-secondary font-bold">يمكن للذكاء الاصطناعي تحليل الحادث وتوليد تقرير تحقيق مفصل واقتراح تدابير وقائية.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

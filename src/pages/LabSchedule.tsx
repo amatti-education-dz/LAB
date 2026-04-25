@@ -1,8 +1,27 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Plus, ArrowLeft, Download, Filter, Search, MoreVertical, Trash2, Edit2, FlaskConical, CheckCircle2, AlertCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  MapPin, 
+  Plus, 
+  ArrowLeft, 
+  FlaskConical, 
+  CheckCircle2, 
+  AlertCircle, 
+  Search, 
+  Trash2, 
+  Edit2,
+  X, 
+  User, 
+  Users, 
+  Info
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { db, getUserCollection, handleFirestoreError, OperationType } from '../firebase';
+import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, orderBy } from 'firebase/firestore';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 interface LabReservation {
   id: string;
@@ -17,18 +36,70 @@ interface LabReservation {
 
 const LABS = ['مخبر العلوم 1', 'مخبر العلوم 2', 'مخبر الفيزياء 1', 'مخبر الفيزياء 2', 'مخبر الكيمياء'];
 const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
-
-const INITIAL_DATA: LabReservation[] = [
-  { id: '1', labName: 'مخبر العلوم 1', day: 'الأحد', time: '08:00 - 10:00', teacher: 'أ. بن علي', subject: 'علوم طبيعية', group: '3ع ت 1', status: 'confirmed' },
-  { id: '2', labName: 'مخبر الفيزياء 1', day: 'الاثنين', time: '10:00 - 12:00', teacher: 'أ. قاسم', subject: 'فيزياء', group: '2ر 1', status: 'pending' },
-  { id: '3', labName: 'مخبر الكيمياء', day: 'الثلاثاء', time: '13:00 - 15:00', teacher: 'أ. مريم', subject: 'كيمياء', group: '3ت ر', status: 'confirmed' },
-];
+const TIME_SLOTS = ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00', '15:00 - 16:00', '08:00 - 10:00', '10:00 - 12:00', '13:00 - 15:00'];
 
 export default function LabSchedule() {
   const navigate = useNavigate();
-  const [reservations, setReservations] = useState<LabReservation[]>(INITIAL_DATA);
+  const [reservations, setReservations] = useState<LabReservation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterLab, setFilterLab] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [conflictError, setConflictError] = useState<string | null>(null);
+
+  const [newRes, setNewRes] = useState<Partial<LabReservation>>({
+    labName: LABS[0],
+    day: DAYS[0],
+    time: TIME_SLOTS[0],
+    teacher: '',
+    subject: 'فيزياء',
+    group: '',
+    status: 'confirmed'
+  });
+
+  useEffect(() => {
+    const q = query(getUserCollection('lab_schedule'), orderBy('day'), orderBy('time'));
+    const unsub = onSnapshot(q, (snap) => {
+      setReservations(snap.docs.map(d => ({ id: d.id, ...d.data() } as LabReservation)));
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const checkConflict = (day: string, time: string, lab: string) => {
+    return reservations.find(r => r.day === day && r.time === time && r.labName === lab && r.status !== 'cancelled');
+  };
+
+  const handleAddReservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConflictError(null);
+
+    const conflict = checkConflict(newRes.day!, newRes.time!, newRes.labName!);
+    if (conflict) {
+      setConflictError(`هذا المختبر محجوز مسبقاً في هذا الوقت من قبل ${conflict.teacher}.`);
+      return;
+    }
+
+    try {
+      await addDoc(getUserCollection('lab_schedule'), {
+        ...newRes,
+        createdAt: serverTimestamp()
+      });
+      setIsModalOpen(false);
+      setNewRes({ labName: LABS[0], day: DAYS[0], time: TIME_SLOTS[0], teacher: '', subject: 'فيزياء', group: '', status: 'confirmed' });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'lab_schedule');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الحجز؟')) return;
+    try {
+      await deleteDoc(doc(getUserCollection('lab_schedule'), id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'lab_schedule');
+    }
+  };
 
   const filteredReservations = reservations.filter(res => {
     const matchesLab = !filterLab || res.labName === filterLab;
@@ -60,7 +131,10 @@ export default function LabSchedule() {
             <ArrowLeft size={24} />
             العودة للفضاء البيداغوجي
           </button>
-          <button className="bg-primary text-on-primary px-10 py-4 rounded-full font-black flex items-center gap-3 shadow-2xl shadow-primary/30 hover:bg-primary-container transition-all active:scale-95">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-primary text-on-primary px-10 py-4 rounded-full font-black flex items-center gap-3 shadow-2xl shadow-primary/30 hover:bg-primary-container transition-all active:scale-95"
+          >
             <Plus size={24} />
             حجز حصة مخبرية
           </button>
@@ -192,6 +266,82 @@ export default function LabSchedule() {
           </table>
         </div>
       </section>
+
+      {/* Booking Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-xl" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+              className="relative bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden border border-outline/10"
+            >
+              <div className="p-8 border-b border-outline/5 flex justify-between items-center bg-surface-container-low/30">
+                <h3 className="text-2xl font-black text-primary">حجز جديد</h3>
+                <button onClick={() => setIsModalOpen(false)} className="p-2.5 hover:bg-surface-container-high rounded-full transition-all active:scale-90"><X size={24} /></button>
+              </div>
+              
+              <form onSubmit={handleAddReservation} className="p-10 space-y-6">
+                {conflictError && (
+                  <div className="bg-error/5 text-error p-4 rounded-2xl border border-error/10 flex items-center gap-3 text-sm font-bold">
+                    <AlertCircle size={20} />
+                    {conflictError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">المخبر</label>
+                    <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold appearance-none" value={newRes.labName} onChange={e => setNewRes({...newRes, labName: e.target.value})}>
+                      {LABS.map(l => <option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">اليوم</label>
+                    <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold appearance-none" value={newRes.day} onChange={e => setNewRes({...newRes, day: e.target.value})}>
+                      {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">التوقيت</label>
+                  <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold appearance-none" value={newRes.time} onChange={e => setNewRes({...newRes, time: e.target.value})}>
+                    {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">الأستاذ</label>
+                  <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold" value={newRes.teacher} onChange={e => setNewRes({...newRes, teacher: e.target.value})} placeholder="اسم الأستاذ..." />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">المادة</label>
+                    <select className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold" value={newRes.subject} onChange={e => setNewRes({...newRes, subject: e.target.value})}>
+                      <option value="فيزياء">فيزياء</option>
+                      <option value="كيمياء">كيمياء</option>
+                      <option value="علوم طبيعية">علوم طبيعية</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-secondary/60 uppercase mr-2">الفوج</label>
+                    <input required className="w-full bg-surface-container-low border border-outline/10 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none font-bold" value={newRes.group} onChange={e => setNewRes({...newRes, group: e.target.value})} placeholder="مثال: 3ث 1..." />
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full bg-primary text-on-primary py-6 rounded-full font-black shadow-2xl shadow-primary/20 hover:bg-primary-container transition-all flex items-center justify-center gap-3 mt-4">
+                  <CheckCircle2 size={24} />
+                  إتمام الحجز وتأكيده
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

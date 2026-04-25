@@ -120,6 +120,39 @@
       },
       "required": ["labId", "teacherName", "day", "startTime", "endTime"]
     },
+    "LabReservation": {
+      "title": "Lab Reservation",
+      "description": "A reservation for a specific lab at a specific time",
+      "type": "object",
+      "properties": {
+        "labName": { "type": "string" },
+        "day": { "type": "string" },
+        "time": { "type": "string" },
+        "teacher": { "type": "string" },
+        "subject": { "type": "string" },
+        "group": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "pending", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["labName", "day", "time", "teacher", "subject", "group", "status"]
+    },
+    "ExperimentLog": {
+      "title": "Experiment Log",
+      "description": "A record of an experiment performed in the lab",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "teacher": { "type": "string" },
+        "class": { "type": "string" },
+        "subject": { "type": "string" },
+        "equipmentUsed": { "type": "array", "items": { "type": "string" } },
+        "chemicalsUsed": { "type": "array", "items": { "type": "string" } },
+        "observations": { "type": "string" },
+        "status": { "type": "string", "enum": ["planned", "completed", "cancelled"] }
+      },
+      "required": ["title", "date", "teacher", "class", "status"]
+    },
     "DailyReport": {
       "title": "Daily Report",
       "description": "Daily laboratory activity report",
@@ -202,6 +235,14 @@
     "users/{userId}/maintenance_logs": {
       "schema": "object",
       "description": "User-specific collection of maintenance logs"
+    },
+    "users/{userId}/lab_schedule": {
+      "schema": "LabReservation",
+      "description": "User-specific collection of lab reservations"
+    },
+    "users/{userId}/experiment_logs": {
+      "schema": "ExperimentLog",
+      "description": "User-specific collection of experiment logs"
     }
   }
 }
