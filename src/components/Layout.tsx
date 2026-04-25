@@ -212,70 +212,69 @@ export default function Layout() {
 
             return (
               <div key={group.title} className="space-y-1">
-                <button
-                  onClick={toggleGroup}
-                  className={cn(
-                    "w-full flex items-center justify-between px-4 py-2 rounded-xl transition-all duration-200 group/title",
-                    isExpanded ? "text-primary bg-primary/5" : "text-secondary hover:bg-secondary-container/30"
-                  )}
-                >
-                  <div className="flex items-center gap-4">
-                    <GroupIcon size={20} className={cn(isExpanded && "text-primary")} />
-                    {isSidebarOpen && <span className="text-sm font-bold">{group.title}</span>}
-                  </div>
-                  {isSidebarOpen && (
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown size={16} className="text-secondary/50 group-hover/title:text-primary" />
-                    </motion.div>
-                  )}
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isExpanded && isSidebarOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="overflow-hidden pr-4 flex flex-col gap-1 mt-1"
-                    >
-                      {group.items.map((item) => {
-                        const isActive = location.pathname === item.path;
-                        const ItemIcon = item.icon;
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            className={cn(
-                              "flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-200 group/item",
-                              isActive 
-                                ? "bg-secondary-container text-primary font-bold shadow-sm" 
-                                : "text-secondary/80 hover:bg-secondary-container/20 hover:text-primary"
-                            )}
-                          >
-                            <ItemIcon size={18} className={cn(isActive && "text-primary")} />
-                            <span className="text-[13px]">{item.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Only Group Icon when sidebar is closed */}
-                {!isSidebarOpen && (
-                  <div className="flex flex-col items-center">
+                {isSidebarOpen ? (
+                  <>
                     <button
                       onClick={toggleGroup}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-2 rounded-xl transition-all duration-200 group/title",
+                        isExpanded ? "text-primary bg-primary/5" : "text-secondary hover:bg-secondary-container/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <GroupIcon size={20} className={cn(isExpanded && "text-primary")} />
+                        <span className="text-sm font-bold">{group.title}</span>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown size={16} className="text-secondary/50 group-hover/title:text-primary" />
+                      </motion.div>
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          className="overflow-hidden pr-4 flex flex-col gap-1 mt-1"
+                        >
+                          {group.items.map((item) => {
+                            const isActive = location.pathname === item.path;
+                            const ItemIcon = item.icon;
+                            return (
+                              <Link
+                                key={item.path}
+                                to={item.path}
+                                className={cn(
+                                  "flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-200 group/item",
+                                  isActive 
+                                    ? "bg-secondary-container text-primary font-bold shadow-sm" 
+                                    : "text-secondary/80 hover:bg-secondary-container/20 hover:text-primary"
+                                )}
+                              >
+                                <ItemIcon size={18} className={cn(isActive && "text-primary")} />
+                                <span className="text-[13px]">{item.name}</span>
+                              </Link>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center py-2">
+                    <button
+                      onClick={() => setIsSidebarOpen(true)}
                       title={group.title}
                       className={cn(
-                        "p-3 rounded-xl transition-all duration-200",
-                        isExpanded 
+                        "p-3 rounded-xl transition-all duration-200 hover:scale-110",
+                        expandedGroups.includes(group.title)
                           ? "bg-primary text-on-primary shadow-lg" 
-                          : "text-secondary hover:bg-secondary-container/30"
+                          : "text-secondary bg-surface hover:bg-secondary-container/30 shadow-sm"
                       )}
                     >
                       <GroupIcon size={24} />
