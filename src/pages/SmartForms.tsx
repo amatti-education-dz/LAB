@@ -18,8 +18,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { findSmartForm, ensureApiKey } from '../services/geminiService';
+import { PDFService } from '../services/pdfService';
 
 interface FormTemplate {
   id: string;
@@ -39,6 +39,10 @@ const TEMPLATES: FormTemplate[] = [
 export default function SmartForms() {
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
+  const [aiQuery, setAiQuery] = useState('');
+  const [isFinding, setIsFinding] = useState(false);
+  const [aiRecommendation, setAiRecommendation] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     reference: `REF-${Math.floor(Math.random() * 10000)}`,
@@ -47,35 +51,60 @@ export default function SmartForms() {
     items: [{ name: '', quantity: '', condition: 'سليم' }]
   });
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const handleExportPDF = async () => {
+    if (!selectedTemplate) return;
     
-    // Add custom font placeholder (standard PDF Fonts don't support Arabic well without extra files)
-    // For this prototype, we'll use English labels but prompt values will be Arabic
+    const columns = [
+      { title: 'اسم البند', dataKey: 'name' },
+      { title: 'الكمية', dataKey: 'quantity' },
+      { title: 'الحالة', dataKey: 'condition' }
+    ];
+
+    const data = formData.items.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      condition: item.condition
+    }));
+
+    PDFService.generateTablePDF(
+      selectedTemplate.title,
+      columns,
+      data,
+      `${selectedTemplate.id}.pdf`
+    );
+  };
+
+  const handleFindForm = async () => {
+    if (!aiQuery.trim()) return;
     
-    doc.setFontSize(22);
-    doc.text(selectedTemplate?.title || 'Report', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.text(`Establishment: ${formData.establishment}`, 20, 35);
-    doc.text(`Date: ${formData.date}`, 20, 42);
-    doc.text(`Reference: ${formData.reference}`, 20, 49);
-    
-    doc.line(20, 55, 190, 55);
-    
-    doc.text('Details:', 20, 65);
-    doc.text(formData.content, 20, 75, { maxWidth: 170 });
-    
-    const tableData = formData.items.map(item => [item.name, item.quantity, item.condition]);
-    autoTable(doc, {
-      startY: 100,
-      head: [['Item Name', 'Quantity', 'Status']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [43, 61, 34] }
-    });
-    
-    doc.save(`${selectedTemplate?.id || 'doc'}.pdf`);
+    setIsFinding(true);
+    setAiRecommendation(null);
+    try {
+      const hasKey = await ensureApiKey();
+      if (!hasKey) {
+        alert('يرجى اختيار مفتاح API الخاص بك.');
+        return;
+      }
+
+      const availableTemplates = TEMPLATES.map(t => ({
+        title: t.title,
+        path: t.id,
+        desc: t.description
+      }));
+
+      const result = await findSmartForm(aiQuery, availableTemplates);
+      if (result) {
+        setAiRecommendation(result);
+        const template = TEMPLATES.find(t => t.id === result.recommendedPath);
+        if (template) {
+          // You could auto-select, but let's show the recommendation first
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsFinding(false);
+    }
   };
 
   return (
@@ -91,12 +120,52 @@ export default function SmartForms() {
           <h1 className="text-4xl font-black text-primary tracking-tighter">المولد الذكي للنماذج</h1>
           <p className="text-secondary/70 text-lg font-bold">إنشاء وثائق رسمية مطابقة لمعايير وزارة التربية الوطنية.</p>
         </div>
-        <button 
-          onClick={() => navigate(-1)}
-          className="p-4 hover:bg-surface-container rounded-full text-secondary transition-all"
-        >
-          <ArrowLeft size={28} />
-        </button>
+        <div className="flex flex-col gap-4 w-full md:w-96">
+          <div className="relative group">
+            <input 
+              type="text"
+              placeholder="اكتب ما تحتاجه (مثلاً: أريد محضر كسر)..."
+              className="w-full bg-white border-2 border-outline-variant/30 rounded-2xl px-6 py-3.5 pr-12 focus:border-primary transition-all font-bold text-sm shadow-lg outline-none"
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleFindForm()}
+            />
+            <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 group-focus-within:text-primary transition-colors" size={20} />
+            <button 
+              onClick={handleFindForm}
+              disabled={isFinding}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-primary text-on-primary rounded-xl"
+            >
+              <FileText size={18} />
+            </button>
+          </div>
+          <AnimatePresence>
+            {aiRecommendation && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-primary/10 border border-primary/20 p-4 rounded-2xl relative"
+              >
+                <button onClick={() => setAiRecommendation(null)} className="absolute top-2 left-2 p-1 hover:bg-primary/10 rounded-full">
+                  <X size={14} />
+                </button>
+                <p className="text-[10px] font-black text-primary uppercase mb-1">توصية المساعد الذكي:</p>
+                <p className="text-xs font-bold text-primary leading-relaxed mb-3">{aiRecommendation.reasoning}</p>
+                <button 
+                  onClick={() => {
+                    const t = TEMPLATES.find(temp => temp.id === aiRecommendation.recommendedPath);
+                    if (t) setSelectedTemplate(t);
+                    setAiRecommendation(null);
+                  }}
+                  className="w-full bg-primary text-on-primary py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
+                >
+                  استخدام هذا النموذج
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">

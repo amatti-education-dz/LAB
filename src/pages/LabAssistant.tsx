@@ -10,11 +10,14 @@ import {
   Book, 
   Calculator,
   MessageSquare,
-  X
+  X,
+  Camera,
+  ImageIcon,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { chatWithLabAssistant } from '../services/geminiService';
+import { chatWithLabAssistant, analyzeLabImage } from '../services/geminiService';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 interface Message {
@@ -36,12 +39,47 @@ export default function LabAssistant() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setLoading(true);
+      setMessages(prev => [...prev, { role: 'user', parts: 'جاري تحليل الصورة... 🔍' }]);
+
+      try {
+        const analysis = await analyzeLabImage(base64);
+        if (analysis && analysis.nameAr) {
+          const responseText = `لقد قمت بتحليل الصورة، وهذا ما وجدته:
+          
+**الاسم:** ${analysis.nameAr}
+**الاستخدام الأساسي:** ${analysis.primaryUse}
+**تحذيرات السلامة:** ${analysis.safetyWarnings}
+
+هل تود معرفة المزيد عن هذا العنصر؟`;
+          
+          setMessages(prev => [...prev, { role: 'model', parts: responseText }]);
+        } else {
+          setMessages(prev => [...prev, { role: 'model', parts: 'عذراً، لم أتمكن من التعرف على محتوى الصورة بشكل دقيق. يرجى محاولة تصوير العنصر بشكل أوضح.' }]);
+        }
+      } catch (error) {
+        setMessages(prev => [...prev, { role: 'model', parts: 'حدث خطأ أثناء تحليل الصورة.' }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSend = async (textOverride?: string) => {
     const text = textOverride || input;
@@ -162,10 +200,17 @@ export default function LabAssistant() {
           )}
 
           <div className="relative group">
+            <input 
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
             <textarea
               rows={1}
-              placeholder="اطرح أي سؤال مخبري..."
-              className="w-full bg-white border-2 border-outline-variant/30 rounded-[32px] px-8 py-5 pr-14 pl-16 focus:border-primary/40 outline-none transition-all shadow-lg shadow-black/5 font-bold resize-none custom-scrollbar"
+              placeholder="اطرح أي سؤال مخبري أو قم بتحميل صورة..."
+              className="w-full bg-white border-2 border-outline-variant/30 rounded-[32px] px-8 py-5 pr-14 pl-28 focus:border-primary/40 outline-none transition-all shadow-lg shadow-black/5 font-bold resize-none custom-scrollbar"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -177,6 +222,15 @@ export default function LabAssistant() {
             />
             <div className="absolute right-5 top-1/2 -translate-y-1/2 text-primary/20 group-focus-within:text-primary transition-colors">
               <MessageSquare size={24} />
+            </div>
+            <div className="absolute left-16 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-primary/5 rounded-full"
+                title="تحليل صورة"
+              >
+                <Camera size={22} />
+              </button>
             </div>
             <button 
               onClick={() => handleSend()}

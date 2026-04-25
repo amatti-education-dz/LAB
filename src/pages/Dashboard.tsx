@@ -36,7 +36,9 @@ import {
   Archive,
   Server,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  Bell,
+  Clock
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Helmet } from 'react-helmet-async';
@@ -68,11 +70,13 @@ export default function Dashboard() {
     incidents: 0,
     lowStock: 0,
     brokenEquip: 0,
-    experiments: 0
+    experiments: 0,
+    expiringSoon: 0
   });
 
   const [graphData, setGraphData] = useState<any[]>([]);
   const [recentReports, setRecentReports] = useState<any[]>([]);
+  const [expiringItems, setExpiringItems] = useState<any[]>([]);
 
   useEffect(() => {
     const unsubReports = onSnapshot(getUserCollection('reports'), (snap) => {
@@ -108,8 +112,21 @@ export default function Dashboard() {
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'equipment'));
 
     const unsubChem = onSnapshot(getUserCollection('chemicals'), (snap) => {
-      const low = snap.docs.filter(doc => (doc.data().quantity || 0) < 10).length;
-      setCounts(prev => ({ ...prev, chemicals: snap.size, lowStock: low }));
+      const today = new Date();
+      const nextMonth = new Date();
+      nextMonth.setDate(today.getDate() + 30);
+
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const low = items.filter((d: any) => (d.quantity || 0) < 10).length;
+      
+      const expiring = items.filter((d: any) => {
+        if (!d.expiryDate) return false;
+        const expDate = new Date(d.expiryDate);
+        return expDate > today && expDate <= nextMonth;
+      });
+
+      setCounts(prev => ({ ...prev, chemicals: snap.size, lowStock: low, expiringSoon: expiring.length }));
+      setExpiringItems(expiring.slice(0, 5));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'chemicals'));
 
     const unsubTeachers = onSnapshot(getUserCollection('teachers'), (snap) => {
@@ -502,52 +519,92 @@ export default function Dashboard() {
       </header>
 
       {/* Alerts Bar */}
-      {(counts.lowStock > 0 || counts.brokenEquip > 0) && (
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {counts.lowStock > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-[oklch(0.97_0.02_20)] text-on-error-container p-6 rounded-md3-card flex items-center gap-6 shadow-ambient hover:shadow-ambient-hover hover:-translate-y-[2px] transition-all duration-300 ease-out relative overflow-hidden group"
-            >
-              <div className="absolute top-0 left-0 w-32 h-32 bg-error/5 rounded-br-[100px] -ml-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
-              <div className="bg-error p-5 rounded-[20px] text-white shadow-ambient relative z-10 w-16 h-16 flex items-center justify-center">
-                <AlertTriangle size={24} />
-              </div>
-              <div className="flex-1 relative z-10">
-                <h4 className="font-bold text-[1.75rem] leading-none mb-2 text-error font-sans">تنبيه حرج</h4>
-                <p className="text-[0.875rem] text-error/80 font-bold">هناك {counts.lowStock} مواد كيميائية وصلت إلى الحد الأدنى.</p>
-              </div>
-              <button 
-                onClick={() => navigate('/chemicals')}
-                className="relative z-10 bg-error text-white text-[0.875rem] font-bold px-8 py-3 rounded-full shadow-ambient hover:shadow-ambient-hover hover:bg-error/90 transition-all duration-300 ease-out active:scale-95"
+      {(counts.lowStock > 0 || counts.brokenEquip > 0 || expiringItems.length > 0) && (
+        <section className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {counts.lowStock > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-[oklch(0.97_0.02_20)] text-on-error-container p-6 rounded-md3-card flex items-center gap-6 shadow-ambient hover:shadow-ambient-hover hover:-translate-y-[2px] transition-all duration-300 ease-out relative overflow-hidden group"
               >
-                معالجة المخزون
-              </button>
-            </motion.div>
-          )}
-          
-          {counts.brokenEquip > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-primary/5 text-primary p-6 rounded-md3-card flex items-center gap-6 shadow-ambient hover:shadow-ambient-hover hover:-translate-y-[2px] transition-all duration-300 ease-out relative overflow-hidden group"
-            >
-              <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-br-[100px] -ml-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
-              <div className="bg-primary p-5 rounded-[20px] text-on-primary shadow-ambient relative z-10 w-16 h-16 flex items-center justify-center">
-                <Hammer size={24} />
-              </div>
-              <div className="flex-1 relative z-10">
-                <h4 className="font-bold text-[1.75rem] leading-none mb-2 text-primary">صيانة مطلوبة</h4>
-                <p className="text-[0.875rem] text-primary/80 font-bold">هناك {counts.brokenEquip} أجهزة تحتاج إلى صيانة فورية.</p>
-              </div>
-              <button 
-                onClick={() => navigate('/equipment')}
-                className="relative z-10 bg-gradient-to-r from-primary to-primary-container text-on-primary text-[0.875rem] font-bold px-8 py-3 rounded-full shadow-ambient hover:shadow-ambient-hover transition-all duration-300 ease-out active:scale-95"
+                <div className="absolute top-0 left-0 w-32 h-32 bg-error/5 rounded-br-[100px] -ml-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
+                <div className="bg-error p-5 rounded-[20px] text-white shadow-ambient relative z-10 w-16 h-16 flex items-center justify-center">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1 relative z-10">
+                  <h4 className="font-bold text-[1.75rem] leading-none mb-2 text-error font-sans">تنبيه حرج</h4>
+                  <p className="text-[0.875rem] text-error/80 font-bold">هناك {counts.lowStock} مواد كيميائية وصلت إلى الحد الأدنى.</p>
+                </div>
+                <button 
+                  onClick={() => navigate('/chemicals')}
+                  className="relative z-10 bg-error text-white text-[0.875rem] font-bold px-8 py-3 rounded-full shadow-ambient hover:shadow-ambient-hover hover:bg-error/90 transition-all duration-300 ease-out active:scale-95"
+                >
+                  معالجة المخزون
+                </button>
+              </motion.div>
+            )}
+            
+            {counts.brokenEquip > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-primary/5 text-primary p-6 rounded-md3-card flex items-center gap-6 shadow-ambient hover:shadow-ambient-hover hover:-translate-y-[2px] transition-all duration-300 ease-out relative overflow-hidden group"
               >
-                سجل الصيانة
-              </button>
+                <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-br-[100px] -ml-10 -mt-10 group-hover:scale-150 transition-transform duration-700" />
+                <div className="bg-primary p-5 rounded-[20px] text-on-primary shadow-ambient relative z-10 w-16 h-16 flex items-center justify-center">
+                  <Hammer size={24} />
+                </div>
+                <div className="flex-1 relative z-10">
+                  <h4 className="font-bold text-[1.75rem] leading-none mb-2 text-primary">صيانة مطلوبة</h4>
+                  <p className="text-[0.875rem] text-primary/80 font-bold">هناك {counts.brokenEquip} أجهزة تحتاج إلى صيانة فورية.</p>
+                </div>
+                <button 
+                  onClick={() => navigate('/equipment')}
+                  className="relative z-10 bg-gradient-to-r from-primary to-primary-container text-on-primary text-[0.875rem] font-bold px-8 py-3 rounded-full shadow-ambient hover:shadow-ambient-hover transition-all duration-300 ease-out active:scale-95"
+                >
+                  سجل الصيانة
+                </button>
+              </motion.div>
+            )}
+          </div>
+
+          {expiringItems.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-600/5 border border-orange-200/50 p-8 rounded-md3-card shadow-ambient relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-5 text-orange-900">
+                <ShieldAlert size={120} />
+              </div>
+              <div className="flex flex-col md:flex-row justify-between items-center gap-8 relative z-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[24px] bg-orange-600 text-white flex items-center justify-center shadow-ambient shrink-0">
+                    <Bell size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-orange-900 tracking-tight">تنبيهات انتهاء الصلاحية</h3>
+                    <p className="text-[0.875rem] font-bold text-orange-800/70">هناك {counts.expiringSoon} مواد ستنتهي صلاحيتها خلال أقل من 30 يوم.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {expiringItems.map((item, i) => (
+                    <div key={item.id} className="bg-white/80 p-3 px-5 rounded-2xl border border-orange-200 flex items-center gap-3">
+                      <Clock size={14} className="text-orange-600" />
+                      <span className="text-sm font-black text-orange-900">{item.nameAr}</span>
+                      <span className="text-[10px] font-black bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{item.expiryDate}</span>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => navigate('/chemicals')}
+                  className="bg-orange-600 text-white px-8 py-3 rounded-full font-black text-sm shadow-ambient hover:bg-orange-700 transition-all active:scale-95"
+                >
+                  إدارة المواد
+                </button>
+              </div>
             </motion.div>
           )}
         </section>

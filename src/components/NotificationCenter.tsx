@@ -94,10 +94,46 @@ export default function NotificationCenter() {
       updateNotifications(expiryNotifs, 'expiry_');
     });
 
+    // Listen to equipment calibration due (within 15 days)
+    const fifteenDaysFromNow = new Date();
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
+    const calDateStr = fifteenDaysFromNow.toISOString().split('T')[0];
+
+    const calQ = query(
+      getUserCollection('equipment'),
+      where('nextCalibration', '<=', calDateStr),
+      where('nextCalibration', '!=', '')
+    );
+
+    const unsubCal = onSnapshot(calQ, (snap) => {
+      const calNotifs = snap.docs.map(doc => {
+        const data = doc.data();
+        const nextCal = new Date(data.nextCalibration);
+        const today = new Date();
+        const diffDays = Math.ceil((nextCal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        return {
+          id: `cal_${doc.id}`,
+          title: diffDays <= 0 ? 'موعد معايرة متأخر' : 'اقتراب موعد المعايرة',
+          description: diffDays <= 0
+            ? `تجاوز الجهاز ${data.name} موعد المعايرة المحدد بتاريخ ${data.nextCalibration}`
+            : `سيحين موعد معايرة الجهاز ${data.name} بعد ${diffDays} يوم`,
+          type: diffDays <= 0 ? 'alert' as const : 'warning' as const,
+          date: new Date().toISOString(),
+          read: false,
+          link: '/inventory/equipment',
+          icon: Activity
+        };
+      });
+
+      updateNotifications(calNotifs, 'cal_');
+    });
+
     return () => {
       unsubChem();
       unsubEquip();
       unsubExpiry();
+      unsubCal();
     };
   }, []);
 

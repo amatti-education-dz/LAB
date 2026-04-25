@@ -36,9 +36,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { ensureApiKey, getEquipmentIntelligence } from '../services/geminiService';
+import { getEquipmentIntelligence, ensureApiKey } from '../services/geminiService';
+import { PDFService } from '../services/pdfService';
 import { logActivity, LogAction, LogModule } from '../services/loggingService';
 
 interface Equipment {
@@ -120,6 +119,12 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedEquipHistory, setSelectedEquipHistory] = useState<MaintenanceLog[]>([]);
   const [currentEquipName, setCurrentEquipName] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [suggestedUpdate, setSuggestedUpdate] = useState<any>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isBulkConfirmOpen, setIsBulkConfirmOpen] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   
   const [newEquipment, setNewEquipment] = useState<Partial<Equipment>>({
     name: '',
@@ -538,33 +543,24 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     printWindow.document.close();
   };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4');
-    
-    doc.setFontSize(20);
-    doc.text('Equipment Inventory Report', 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-
+  const handleExportPDF = async () => {
+    const headers = ['#', 'تعيين الجهاز', 'النوع', 'الكمية', 'رقم الجرد', 'الموقع', 'الحالة'];
     const tableData = filteredEquipment.map((e, index) => [
       index + 1,
-      e.name,
-      e.type === 'glassware' ? 'Glassware' : 'Tech',
+      e.smartNameAr || e.name,
+      e.type === 'glassware' ? 'زجاجيات' : e.type === 'tech' ? 'أجهزة تقنية' : 'أخرى',
       e.totalQuantity,
-      e.status,
-      e.location || 'N/A'
+      e.serialNumber || '---',
+      e.location || '---',
+      e.status === 'functional' ? 'سليم' : e.status === 'maintenance' ? 'صيانة' : 'تالف'
     ]);
 
-    autoTable(doc, {
-      startY: 35,
-      head: [['#', 'Name', 'Type', 'Qty', 'Status', 'Location']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [74, 124, 89], textColor: 255 },
-    });
-
-    doc.save(`equipment_inventory_${new Date().toISOString().split('T')[0]}.pdf`);
+    await PDFService.generateTablePDF(
+      'تقرير جرد العتاد والزجاجيات المخبرية',
+      headers,
+      tableData,
+      `equipment_inventory_${new Date().toISOString().split('T')[0]}`
+    );
   };
 
   const handleSmartUpdate = async () => {
@@ -732,6 +728,92 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     }
   };
 
+  const handleRequestSmartUpdate = async (item: Equipment) => {
+    const hasKey = await ensureApiKey();
+    if (!hasKey) {
+      alert('يرجى تهيئة مفتاح API لاستخدام الميزات الذكية.');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setSelectedEquipment(item);
+    try {
+      const result = await getEquipmentIntelligence([{ id: item.id, name: item.name }]);
+      if (result && result.length > 0) {
+        setSuggestedUpdate(result[0]);
+        setIsReviewModalOpen(true);
+      } else {
+        alert('فشل الذكاء الاصطناعي في تحليل هذا الصنف.');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleApproveUpdate = async () => {
+    if (!suggestedUpdate || !selectedEquipment) return;
+    try {
+      await updateDoc(doc(getUserCollection('equipment'), selectedEquipment.id), {
+        smartNameAr: suggestedUpdate.smartNameAr,
+        smartDescriptionAr: suggestedUpdate.smartDescriptionAr,
+        imageKeyword: suggestedUpdate.imageKeyword,
+        updatedAt: serverTimestamp()
+      });
+      setIsReviewModalOpen(false);
+      setSuggestedUpdate(null);
+      setSelectedEquipment(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `equipment/${selectedEquipment.id}`);
+    }
+  };
+
+  const handleBulkSmartUpdate = async () => {
+    setIsBulkConfirmOpen(false);
+    const hasKey = await ensureApiKey();
+    if (!hasKey) {
+      alert('يرجى تهيئة مفتاح API لاستخدام الميزات الذكية.');
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    // Process in chunks of 5 to avoid quota/payload limits
+    const CHUNK_SIZE = 5;
+    let processed = 0;
+    const total = equipment.length;
+    setBulkProgress({ current: 0, total });
+
+    try {
+      for (let i = 0; i < total; i += CHUNK_SIZE) {
+        const chunk = equipment.slice(i, i + CHUNK_SIZE);
+        const chunkResults = await getEquipmentIntelligence(chunk.map(e => ({ id: e.id, name: e.name })));
+        
+        if (chunkResults) {
+          const batch = writeBatch(db);
+          chunkResults.forEach(res => {
+            batch.update(doc(getUserCollection('equipment'), res.id), {
+              smartNameAr: res.smartNameAr,
+              smartDescriptionAr: res.smartDescriptionAr,
+              imageKeyword: res.imageKeyword,
+              updatedAt: serverTimestamp()
+            });
+          });
+          await batch.commit();
+        }
+        
+        processed += chunk.length;
+        setBulkProgress({ current: processed, total });
+      }
+      alert('تم تحديث جميع العتاد ذكياً بنجاح!');
+    } catch (error) {
+      console.error(error);
+      alert('حدث خطأ أثناء التحديث الجماعي.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   const filteredEquipment = equipment
     .filter(e => {
       const matchesSearch = 
@@ -839,11 +921,11 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
               تصدير PDF
             </button>
             <button 
-              onClick={() => setIsSmartUpdateConfirmOpen(true)}
-              disabled={isSmartUpdating}
+              onClick={() => setIsBulkConfirmOpen(true)}
+              disabled={isBulkUpdating}
               className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95 disabled:opacity-50"
             >
-              {isSmartUpdating ? (
+              {isBulkUpdating ? (
                 <RefreshCw size={20} className="animate-spin" />
               ) : (
                 <Sparkles size={20} />
@@ -1157,6 +1239,18 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
                           title="عرض رمز QR"
                         >
                           <QrCode size={20} />
+                        </button>
+                        <button 
+                          onClick={() => handleRequestSmartUpdate(e)}
+                          disabled={isAnalyzing}
+                          className="p-3 text-primary/40 hover:text-primary transition-colors rounded-2xl hover:bg-primary/10 shadow-sm border border-outline/5 bg-white disabled:opacity-50"
+                          title="تحليل ذكي للبيانات"
+                        >
+                          {isAnalyzing && selectedEquipment?.id === e.id ? (
+                            <RefreshCw size={20} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={20} />
+                          )}
                         </button>
                         <button 
                           onClick={() => {
@@ -1557,6 +1651,79 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
           </div>
         )}
       </AnimatePresence>
+      
+      {/* Floating Bulk Action Bar */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#1a2744] text-white px-8 py-5 rounded-[32px] shadow-2xl flex items-center gap-10 min-w-[600px]"
+          >
+            <div className="flex flex-col">
+              <span className="text-sm font-black">{selectedIds.length} صنف مختار</span>
+              <span className="text-[10px] text-white/60 font-bold">يمكنك إجراء عمليات جماعية على هذه التجهيزات</span>
+            </div>
+
+            <div className="h-10 w-px bg-white/10" />
+
+            <div className="flex gap-4">
+              <button 
+                onClick={handleBulkDelete}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-500/20 text-red-100 hover:bg-red-500 hover:text-white transition-all font-black text-sm"
+              >
+                <Trash2 size={18} />
+                حذف المختار
+              </button>
+              
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => handleBulkStatusUpdate('functional')}
+                  className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all font-black text-[10px] uppercase"
+                  title="تحديد كسليم"
+                >
+                  سليم
+                </button>
+                <button 
+                  onClick={() => handleBulkStatusUpdate('maintenance')}
+                  className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all font-black text-[10px] uppercase"
+                  title="تحديد قيد الصيانة"
+                >
+                  صيانة
+                </button>
+              </div>
+
+              <button 
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all font-black text-sm"
+                onClick={() => {
+                  const items = equipment.filter(e => selectedIds.includes(e.id));
+                  const worksheet = XLSX.utils.json_to_sheet(items.map(e => ({
+                    'Equipment': e.name,
+                    'Type': e.type,
+                    'Serial': e.serialNumber,
+                    'Status': e.status,
+                    'Qty': e.totalQuantity
+                  })));
+                  const workbook = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(workbook, worksheet, "SelectedEquipment");
+                  XLSX.writeFile(workbook, `selected_equipment_${new Date().getTime()}.xlsx`);
+                }}
+              >
+                <Download size={18} />
+                تصدير المختار
+              </button>
+
+              <button 
+                onClick={() => setSelectedIds([])}
+                className="p-2.5 hover:bg-white/10 rounded-full transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* History Modal */}
       <AnimatePresence>
@@ -1664,6 +1831,83 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
                   إغلاق
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Smart Update Confirmation Modal */}
+      <AnimatePresence>
+        {isBulkConfirmOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsBulkConfirmOpen(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-3xl" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-white w-full max-w-md rounded-[40px] shadow-2xl p-10 text-center">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
+                <Sparkles size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-primary mb-4">تحديث ذكي شامل</h3>
+              <p className="text-on-surface/60 font-bold mb-8 leading-relaxed">
+                سيقوم النظام باستخدام الذكاء الاصطناعي لتحسين مسميات وأوصاف جميع الأجهزة في القائمة. هل تود الاستمرار؟
+              </p>
+              <div className="flex gap-4">
+                <button onClick={handleBulkSmartUpdate} className="flex-1 bg-primary text-on-primary py-4 rounded-2xl font-black hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">تأكيد التحديث</button>
+                <button onClick={() => setIsBulkConfirmOpen(false)} className="flex-1 bg-surface-container-high text-on-surface/60 py-4 rounded-2xl font-black">إلغاء</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Review Suggested Update Modal */}
+      <AnimatePresence>
+        {isReviewModalOpen && suggestedUpdate && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary/20 backdrop-blur-3xl" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-white w-full max-w-lg rounded-[40px] shadow-2xl p-10 overflow-hidden">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="text-xl font-black text-primary">اقتراح تحسين البيانات</h3>
+              </div>
+              
+              <div className="space-y-6 mb-10">
+                <div className="p-6 bg-surface-container-low rounded-3xl border border-outline/5">
+                  <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest mb-2">الاسم المقترح</p>
+                  <p className="text-xl font-black text-primary">{suggestedUpdate.smartNameAr}</p>
+                </div>
+                <div className="p-6 bg-surface-container-low rounded-3xl border border-outline/5">
+                  <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest mb-2">الوصف المقترح</p>
+                  <p className="text-sm font-bold text-on-surface/70 leading-relaxed">{suggestedUpdate.smartDescriptionAr}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button onClick={handleApproveUpdate} className="flex-1 bg-primary text-on-primary py-4 rounded-2xl font-black hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">اعتماد التحديث</button>
+                <button onClick={() => { setIsReviewModalOpen(false); setSuggestedUpdate(null); }} className="flex-1 bg-surface-container-high text-on-surface/60 py-4 rounded-2xl font-black">تجاهل</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Progress Overlay */}
+      <AnimatePresence>
+        {isBulkUpdating && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center">
+            <div className="absolute inset-0 bg-primary/10 backdrop-blur-md" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative bg-white p-12 rounded-[40px] shadow-2xl text-center max-w-sm w-full mx-6">
+              <RefreshCw className="w-16 h-16 text-primary mx-auto mb-6 animate-spin" />
+              <h3 className="text-2xl font-black text-primary mb-2">جاري التحديث الذكي</h3>
+              <p className="text-on-surface/40 font-bold mb-8">يرجى الانتظار، جاري معالجة البيانات...</p>
+              <div className="h-4 bg-surface-container-high rounded-full overflow-hidden mb-2">
+                <motion.div 
+                  className="h-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs font-black text-primary">{bulkProgress.current} من {bulkProgress.total}</p>
             </motion.div>
           </div>
         )}

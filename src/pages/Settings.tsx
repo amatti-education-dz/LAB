@@ -875,6 +875,16 @@ export default function SettingsPage() {
                         placeholder="مثال: فيزياء، كيمياء، علوم طبيعية"
                       />
                     </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-black text-[#5c6146] mr-2">التربة المختارة</label>
+                      <input 
+                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold" 
+                        type="text" 
+                        value={soilType}
+                        onChange={(e) => setSoilType(e.target.value)}
+                        placeholder="أدخل التربة المختارة هنا"
+                      />
+                    </div>
                   </div>
                 </section>
 
@@ -1297,13 +1307,13 @@ export default function SettingsPage() {
                     <p className="text-sm font-bold text-[#5c6146] mb-6">تغيير كلمة المرور الخاصة بك بانتظام يعزز أمان بياناتك.</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3">
-                          <label className="text-sm font-black text-[#5c6146] mr-2">الرتبة المهنية (أو التربة المختارة)</label>
+                          <label className="text-sm font-black text-[#5c6146] mr-2">كلمة المرور الجديدة</label>
                           <input 
-                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold" 
-                            type="text" 
-                            value={soilType}
-                            onChange={(e) => setSoilType(e.target.value)}
-                            placeholder="اكتب الرتبة أو التربة هنا..."
+                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold" 
+                            type="password" 
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
                           />
                         </div>
                         <div className="space-y-3">

@@ -34,6 +34,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logActivity, LogAction, LogModule } from '../services/loggingService';
 
+import { PDFService } from '../services/pdfService';
+
 interface Chemical {
   id: string;
   nameEn: string;
@@ -529,82 +531,49 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
 
           <div class="legend">
             <span style="display: inline-block; width: 15px; height: 15px; background: #fee2e2; border: 1px solid #000; vertical-align: middle; margin-left: 5px;"></span>
-            خلفية حمراء = مادة خطرة (GHS)
-          </div>
-
-          <div style="margin-top: 20px; text-align: left; font-weight: 600;">
-            حرر بـ: عين كرشة &nbsp;&nbsp; في: ${formattedDate}
+            خلفية حمراء = مادة خطرة
           </div>
 
           <div class="footer-signatures">
             <div class="signature-box">
-              <p>مسؤول المخبر</p>
+              <p>رئيس المصلحة</p>
             </div>
             <div class="signature-box">
-              <p>مدير(ة) الثانوية</p>
+              <p>المقتصد</p>
+            </div>
+            <div class="signature-box">
+              <p>المخبري</p>
             </div>
           </div>
 
-          <div class="print-meta">
-            تم الاستخراج بواسطة نظام جرد المختبر الذكي - ${new Date().toLocaleString('ar-DZ')}
+          <div class="print-meta no-print">
+            طُبع بواسطة نظام الإدارة المخبرية الذكي بتاريخ: ${formattedDate}
           </div>
-
-          <script>
-            window.onload = () => {
-              setTimeout(() => {
-                window.print();
-                // window.close();
-              }, 500);
-            };
-          </script>
         </body>
       </html>
     `);
     printWindow.document.close();
+    printWindow.print();
   };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF('l', 'mm', 'a4');
-    
-    // Note: Arabic support in jsPDF requires embedding a .ttf font.
-    // For this implementation, we'll focus on English names and data.
-    // We advise users to use "Print to PDF" for full Arabic support.
-    
-    doc.setFontSize(20);
-    doc.text('Chemical Inventory Report', 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-
+  const handleExportPDF = async () => {
+    const headers = ['#', 'الاسم العلمي', 'الاسم العربي', 'الصيغة', 'الكمية', 'الرف', 'تاريخ الصلاحية'];
     const tableData = filteredChemicals.map((c, index) => [
       index + 1,
-      c.nameEn || c.nameAr,
-      c.formula,
+      c.nameEn || '',
+      c.nameAr || '',
+      c.formula || '',
       `${c.quantity} ${c.unit}`,
-      c.hazardClass === 'danger' ? 'Danger' : 'Safe',
-      c.shelf,
+      c.shelf || '',
       formatDisplayDate(c.expiryDate)
     ]);
 
-    autoTable(doc, {
-      startY: 35,
-      head: [['#', 'Chemical Name', 'Formula', 'Quantity', 'Hazard', 'Shelf', 'Expiry']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [63, 81, 181], textColor: 255 },
-      styles: { font: 'helvetica', halign: 'left' },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 20 },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 30 }
-      }
-    });
-
-    doc.save(`chemical_inventory_${new Date().toISOString().split('T')[0]}.pdf`);
+    await PDFService.generateTablePDF(
+      'تقرير جرد المواد الكيميائية',
+      headers,
+      tableData,
+      `chemicals_inventory_${new Date().toISOString().split('T')[0]}.pdf`
+    );
   };
 
   const handleExportXLS = () => {

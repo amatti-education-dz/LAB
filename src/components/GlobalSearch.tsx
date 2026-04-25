@@ -52,14 +52,19 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           getDocs(query(getUserCollection('experiments'), limit(5)))
         ]);
 
-        const searchResults: SearchResult[] = [];
+        const groupedResults: Record<string, SearchResult[]> = {
+          'أجهزة ومعدات': [],
+          'مواد كيميائية': [],
+          'الأساتذة': [],
+          'تقارير وتجارب': []
+        };
         const term = searchTerm.toLowerCase();
 
         // Process Equipment
         eqSnap.docs.forEach(doc => {
           const data = doc.data();
           if (data.name?.toLowerCase().includes(term)) {
-            searchResults.push({
+            groupedResults['أجهزة ومعدات'].push({
               id: doc.id,
               title: data.name,
               type: 'equipment',
@@ -73,7 +78,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         chemSnap.docs.forEach(doc => {
           const data = doc.data();
           if (data.name?.toLowerCase().includes(term)) {
-            searchResults.push({
+            groupedResults['مواد كيميائية'].push({
               id: doc.id,
               title: data.name,
               type: 'chemical',
@@ -87,7 +92,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         teacherSnap.docs.forEach(doc => {
           const data = doc.data();
           if (data.name?.toLowerCase().includes(term)) {
-            searchResults.push({
+            groupedResults['الأساتذة'].push({
               id: doc.id,
               title: data.name,
               type: 'teacher',
@@ -101,7 +106,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         expSnap.docs.forEach(doc => {
           const data = doc.data();
           if (data.title?.toLowerCase().includes(term)) {
-            searchResults.push({
+            groupedResults['تقارير وتجارب'].push({
               id: doc.id,
               title: data.title,
               type: 'report',
@@ -111,7 +116,17 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           }
         });
 
-        setResults(searchResults);
+        // Flatten for general display or keep grouped? The UI shows a list. 
+        // Let's keep it grouped in the state for the UI to render headers.
+        const flatResults: (SearchResult | { isHeader: true, label: string })[] = [];
+        Object.entries(groupedResults).forEach(([label, items]) => {
+          if (items.length > 0) {
+            flatResults.push({ isHeader: true, label } as any);
+            items.forEach(item => flatResults.push(item));
+          }
+        });
+
+        setResults(flatResults as any);
       } catch (error) {
         console.error('Search error:', error);
       } finally {
@@ -174,23 +189,32 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                 </div>
               ) : results.length > 0 ? (
                 <div className="space-y-2">
-                  {results.map((result) => (
-                    <Link
-                      key={`${result.type}-${result.id}`}
-                      to={result.path}
-                      onClick={onClose}
-                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-primary/5 transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                        {getTypeIcon(result.type)}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-black text-primary">{result.title}</h4>
-                        <p className="text-xs text-secondary font-bold">{result.subtitle}</p>
-                      </div>
-                      <ArrowRight size={18} className="text-outline opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                    </Link>
-                  ))}
+                  {results.map((result: any, i) => {
+                    if (result.isHeader) {
+                      return (
+                        <div key={`header-${i}`} className="pt-4 pb-2 px-4 first:pt-0">
+                          <h5 className="text-[10px] font-black text-outline uppercase tracking-widest">{result.label}</h5>
+                        </div>
+                      );
+                    }
+                    return (
+                      <Link
+                        key={`${result.type}-${result.id}`}
+                        to={result.path}
+                        onClick={onClose}
+                        className="flex items-center gap-4 p-4 rounded-2xl hover:bg-primary/5 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                          {getTypeIcon(result.type)}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-black text-primary">{result.title}</h4>
+                          <p className="text-xs text-secondary font-bold">{result.subtitle}</p>
+                        </div>
+                        <ArrowRight size={18} className="text-outline opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : searchTerm ? (
                 <div className="text-center py-12">
