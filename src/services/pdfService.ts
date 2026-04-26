@@ -49,21 +49,29 @@ export class PDFService {
     // We assume the font handles some of this or the user handles it.
     // For basic support, we reverse the text for RTL simulation if needed, 
     // but modern browsers often handle it better with specific plugins.
+    
+    // In jsPDF, right alignment with x=200 creates right-aligned text
+    // Need to set isRTL or reshape but standard addFont with Arabic TTF sometimes works with basic rendering
     doc.text(title, 200, 20, { align: 'right' });
 
+    // Reverse headers and rows for RTL table layout (columns from right to left)
+    const rtlHeaders = [...headers].reverse();
+    const rtlRows = rows.map(row => [...row].reverse());
+
     autoTable(doc, {
-      head: [headers],
-      body: rows,
+      head: [rtlHeaders],
+      body: rtlRows,
       startY: 30,
       styles: {
         font: 'ManaraDocs',
-        halign: 'right',
+        halign: 'right', // Text aligns to the right inside cells
         fontSize: 10
       },
       headStyles: {
         fillColor: [43, 61, 34],
         textColor: [255, 255, 255],
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        halign: 'right'
       }
     });
 

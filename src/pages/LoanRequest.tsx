@@ -266,7 +266,7 @@ export default function LoanRequest() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcf9f3] pb-24 rtl font-sans" dir="rtl">
+    <div className="min-h-screen bg-background pb-24 rtl font-sans" dir="rtl">
       <div className="max-w-5xl mx-auto p-6 md:p-12">
         
         {/* Header Actions */}

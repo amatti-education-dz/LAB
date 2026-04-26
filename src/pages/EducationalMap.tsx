@@ -157,7 +157,7 @@ export default function EducationalMap() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fcf9f3] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <Loader2 className="w-16 h-16 text-primary animate-spin" />
           <div className="h-4 w-32 bg-primary/20 rounded"></div>

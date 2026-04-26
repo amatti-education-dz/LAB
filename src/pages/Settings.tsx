@@ -654,8 +654,8 @@ export default function SettingsPage() {
     <div className="max-w-7xl mx-auto px-4 pb-24" dir="rtl">
       <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h2 className="text-4xl font-black text-[#2b3d22] tracking-tight mb-2">الإعدادات المركزية</h2>
-          <p className="text-[#5c6146] text-lg opacity-80">تحكم كامل في بيئة العمل، الهوية المهنية، والتنظيم التربوي للمؤسسة.</p>
+          <h2 className="text-4xl font-black text-primary tracking-tight mb-2">الإعدادات المركزية</h2>
+          <p className="text-secondary text-lg opacity-80">تحكم كامل في بيئة العمل، الهوية المهنية، والتنظيم التربوي للمؤسسة.</p>
         </div>
         <div className="flex items-center gap-4">
           <button 
@@ -674,9 +674,9 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-[#2b3d22] text-white px-8 py-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10"
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-primary text-white px-8 py-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10"
           >
-            <CheckCircle2 size={24} className="text-[#d3e9c3]" />
+            <CheckCircle2 size={24} className="text-primary-fixed" />
             <span className="font-bold text-lg">تم تحديث كافة الإعدادات بنجاح</span>
           </motion.div>
         )}
@@ -693,8 +693,8 @@ export default function SettingsPage() {
                 className={cn(
                   "flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all whitespace-nowrap text-right w-full",
                   activeTab === tab.id 
-                    ? "bg-[#2b3d22] text-white shadow-lg shadow-[#2b3d22]/20 translate-x-1" 
-                    : "text-[#5c6146] hover:bg-[#e1e6c3]/30 hover:text-[#2b3d22]"
+                    ? "bg-primary text-white shadow-lg shadow-primary/20 translate-x-1" 
+                    : "text-secondary hover:bg-secondary-container/30 hover:text-primary"
                 )}
               >
                 <tab.icon size={20} />
@@ -792,20 +792,20 @@ export default function SettingsPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-[40px] p-8 lg:p-12 shadow-xl shadow-[#2b3d22]/5 border border-[#c4c8bd]/10 min-h-[600px]"
+            className="bg-white rounded-[40px] p-8 lg:p-12 shadow-xl shadow-primary/5 border border-outline-variant/10 min-h-[600px]"
           >
             {activeTab === 'profile' && (
               <div className="space-y-12">
                 <section>
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <User className="text-[#5c6146]" />
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <User className="text-secondary" />
                     المعلومات الأساسية
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الاسم الكامل</label>
+                      <label className="text-sm font-black text-secondary mr-2">الاسم الكامل</label>
                       <input 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold" 
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold" 
                         type="text" 
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
@@ -813,9 +813,9 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">البريد الإلكتروني</label>
+                      <label className="text-sm font-black text-secondary mr-2">البريد الإلكتروني</label>
                       <input 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 opacity-50 cursor-not-allowed text-[#1c1c18] font-bold" 
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 opacity-50 cursor-not-allowed text-on-surface font-bold" 
                         type="email" 
                         value={email}
                         disabled
@@ -824,16 +824,16 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Shield className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Shield className="text-secondary" />
                     الصفة المهنية
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الرتبة المهنية</label>
+                      <label className="text-sm font-black text-secondary mr-2">الرتبة المهنية</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold appearance-none"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold appearance-none"
                         value={jobTitle}
                         onChange={(e) => setJobTitle(e.target.value)}
                       >
@@ -852,9 +852,9 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الدرجة / السلم</label>
+                      <label className="text-sm font-black text-secondary mr-2">الدرجة / السلم</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold appearance-none"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold appearance-none"
                         value={grade}
                         onChange={(e) => setGrade(e.target.value)}
                       >
@@ -867,18 +867,18 @@ export default function SettingsPage() {
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">التخصص الأكاديمي</label>
+                      <label className="text-sm font-black text-secondary mr-2">التخصص الأكاديمي</label>
                       <textarea 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold min-h-[60px] resize-none" 
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold min-h-[60px] resize-none" 
                         value={specialty}
                         onChange={(e) => setSpecialty(e.target.value)}
                         placeholder="مثال: فيزياء، كيمياء، علوم طبيعية"
                       />
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">التربة المختارة</label>
+                      <label className="text-sm font-black text-secondary mr-2">التربة المختارة</label>
                       <input 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all text-[#1c1c18] font-bold" 
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold" 
                         type="text" 
                         value={soilType}
                         onChange={(e) => setSoilType(e.target.value)}
@@ -888,9 +888,9 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Users className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Users className="text-secondary" />
                     ربط الحسابات الاجتماعية
                   </h3>
                   <div className="flex flex-wrap gap-4">
@@ -901,7 +901,7 @@ export default function SettingsPage() {
                         "flex items-center gap-3 px-6 py-3 rounded-2xl font-bold transition-all border-2",
                         auth.currentUser?.providerData.some(p => p.providerId === 'google.com')
                           ? "bg-green-50 border-green-100 text-green-700 cursor-default"
-                          : "bg-white border-[#c4c8bd]/30 text-[#2b3d22] hover:border-[#2b3d22]/30"
+                          : "bg-white border-outline-variant/30 text-primary hover:border-primary/30"
                       )}
                     >
                       <Chrome size={18} className={auth.currentUser?.providerData.some(p => p.providerId === 'google.com') ? "text-green-600" : "text-[#4285F4]"} />
@@ -915,7 +915,7 @@ export default function SettingsPage() {
                         "flex items-center gap-3 px-6 py-3 rounded-2xl font-bold transition-all border-2",
                         auth.currentUser?.providerData.some(p => p.providerId === 'facebook.com')
                           ? "bg-blue-50 border-blue-100 text-blue-700 cursor-default"
-                          : "bg-white border-[#c4c8bd]/30 text-[#2b3d22] hover:border-[#2b3d22]/30"
+                          : "bg-white border-outline-variant/30 text-primary hover:border-primary/30"
                       )}
                     >
                       <Facebook size={18} className={auth.currentUser?.providerData.some(p => p.providerId === 'facebook.com') ? "text-blue-600" : "text-[#1877F2]"} />
@@ -935,15 +935,15 @@ export default function SettingsPage() {
             {activeTab === 'institution' && (
               <div className="space-y-16">
                 <section>
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <School className="text-[#5c6146]" />
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <School className="text-secondary" />
                     بيانات المؤسسة التعليمية
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">مديرية التربية</label>
+                      <label className="text-sm font-black text-secondary mr-2">مديرية التربية</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold appearance-none"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold appearance-none"
                         value={selectedDirectorate}
                         onChange={(e) => {
                           setSelectedDirectorate(e.target.value);
@@ -959,9 +959,9 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">البلدية</label>
+                      <label className="text-sm font-black text-secondary mr-2">البلدية</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold appearance-none disabled:opacity-30"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold appearance-none disabled:opacity-30"
                         disabled={!selectedDirectorate}
                         value={selectedCommune}
                         onChange={(e) => {
@@ -978,9 +978,9 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الطور التعليمي</label>
+                      <label className="text-sm font-black text-secondary mr-2">الطور التعليمي</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold appearance-none disabled:opacity-30"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold appearance-none disabled:opacity-30"
                         disabled={!selectedCommune}
                         value={selectedCycle}
                         onChange={(e) => {
@@ -998,9 +998,9 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">المؤسسة التعليمية</label>
+                      <label className="text-sm font-black text-secondary mr-2">المؤسسة التعليمية</label>
                       <select 
-                        className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold appearance-none disabled:opacity-30"
+                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold appearance-none disabled:opacity-30"
                         disabled={!selectedCycle}
                         value={selectedSchool}
                         onChange={(e) => setSelectedSchool(e.target.value)}
@@ -1016,12 +1016,12 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="mt-8 space-y-3">
-                    <label className="text-sm font-black text-[#5c6146] mr-2 flex items-center gap-2">
+                    <label className="text-sm font-black text-secondary mr-2 flex items-center gap-2">
                       <MapPin size={16} />
                       العنوان الجغرافي الدقيق
                     </label>
                     <textarea 
-                      className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[24px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold min-h-[100px] resize-none"
+                      className="w-full bg-background border-2 border-transparent rounded-[24px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold min-h-[100px] resize-none"
                       placeholder="أدخل عنوان المؤسسة بالتفصيل..."
                       value={schoolAddress}
                       onChange={(e) => setSchoolAddress(e.target.value)}
@@ -1036,19 +1036,19 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
+                <section className="pt-12 border-t border-outline-variant/20">
                   <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
-                      <h3 className="text-2xl font-black text-[#2b3d22] flex items-center gap-3">
-                        <MapIcon className="text-[#5c6146]" />
+                      <h3 className="text-2xl font-black text-primary flex items-center gap-3">
+                        <MapIcon className="text-secondary" />
                         الخريطة التربوية
                       </h3>
-                      <p className="text-[#5c6146] text-sm font-bold mt-1">تنظيم المستويات والأفواج التربوية للموسم الدراسي الحالي.</p>
+                      <p className="text-secondary text-sm font-bold mt-1">تنظيم المستويات والأفواج التربوية للموسم الدراسي الحالي.</p>
                     </div>
                     {selectedCycle && (
                       <button
                         onClick={resetToCycleTemplate}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#e1e6c3] text-[#2b3d22] font-black text-xs hover:bg-[#2b3d22] hover:text-white transition-all shadow-sm"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary-container text-primary font-black text-xs hover:bg-primary hover:text-white transition-all shadow-sm"
                       >
                         <History size={14} />
                         تحيين حسب الطور ({selectedCycle})
@@ -1061,13 +1061,13 @@ export default function SettingsPage() {
                       <motion.div 
                         layout
                         key={level.id} 
-                        className="bg-[#fcf9f3] rounded-[32px] p-8 border border-[#c4c8bd]/30"
+                        className="bg-background rounded-[32px] p-8 border border-outline-variant/30"
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                          <h4 className="text-lg font-black text-[#2b3d22]">{level.name}</h4>
+                          <h4 className="text-lg font-black text-primary">{level.name}</h4>
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-[#c4c8bd]/50 shadow-sm">
-                              <span className="text-[10px] font-black text-[#5c6146] uppercase tracking-wider">الأفواج</span>
+                            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-outline-variant/50 shadow-sm">
+                              <span className="text-[10px] font-black text-secondary uppercase tracking-wider">الأفواج</span>
                               <input 
                                 type="number"
                                 min="0"
@@ -1082,12 +1082,12 @@ export default function SettingsPage() {
                                     setLevels(levels.map(l => l.id === level.id ? { ...l, groups: l.groups.slice(0, count) } : l));
                                   }
                                 }}
-                                className="w-10 text-center font-black text-[#2b3d22] bg-transparent border-none focus:ring-0 p-0"
+                                className="w-10 text-center font-black text-primary bg-transparent border-none focus:ring-0 p-0"
                               />
                             </div>
                             <button 
                               onClick={() => addGroup(level.id)}
-                              className="p-2 bg-[#2b3d22] text-white rounded-xl hover:scale-110 active:scale-90 transition-all shadow-md"
+                              className="p-2 bg-primary text-white rounded-xl hover:scale-110 active:scale-90 transition-all shadow-md"
                             >
                               <Plus size={20} />
                             </button>
@@ -1100,7 +1100,7 @@ export default function SettingsPage() {
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               key={idx} 
-                              className="bg-white border border-[#c4c8bd]/40 p-1 pr-4 rounded-2xl flex items-center justify-between group shadow-sm hover:border-[#2b3d22]/30 transition-all"
+                              className="bg-white border border-outline-variant/40 p-1 pr-4 rounded-2xl flex items-center justify-between group shadow-sm hover:border-primary/30 transition-all"
                             >
                               <input 
                                 type="text"
@@ -1115,7 +1115,7 @@ export default function SettingsPage() {
                                     return l;
                                   }));
                                 }}
-                                className="text-[#2b3d22] bg-transparent border-none focus:ring-0 p-0 w-full font-bold text-sm"
+                                className="text-primary bg-transparent border-none focus:ring-0 p-0 w-full font-bold text-sm"
                               />
                               <button 
                                 onClick={() => removeGroup(level.id, idx)}
@@ -1131,12 +1131,12 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Clock className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Clock className="text-secondary" />
                     مواقيت الحصص التعليمية
                   </h3>
-                  <p className="text-[#5c6146] text-sm font-bold mb-6">تخصيص قائمة المواقيت المستخدمة في التقارير وسجلات المتابعة.</p>
+                  <p className="text-secondary text-sm font-bold mb-6">تخصيص قائمة المواقيت المستخدمة في التقارير وسجلات المتابعة.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
@@ -1144,7 +1144,7 @@ export default function SettingsPage() {
                         <input 
                           type="text" 
                           placeholder="مثال: 08:00 - 09:30"
-                          className="flex-1 bg-[#fcf9f3] border-2 border-transparent rounded-2xl px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold"
+                          className="flex-1 bg-background border-2 border-transparent rounded-2xl px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold"
                           value={newTimeSlot}
                           onChange={(e) => setNewTimeSlot(e.target.value)}
                           onKeyDown={(e) => {
@@ -1165,7 +1165,7 @@ export default function SettingsPage() {
                               setNewTimeSlot('');
                             }
                           }}
-                          className="bg-[#2b3d22] text-white p-4 rounded-2xl shadow-lg hover:opacity-90 transition-all active:scale-95"
+                          className="bg-primary text-white p-4 rounded-2xl shadow-lg hover:opacity-90 transition-all active:scale-95"
                         >
                           <Plus size={24} />
                         </button>
@@ -1175,9 +1175,9 @@ export default function SettingsPage() {
                         {timeSlots.map((slot, index) => (
                           <div 
                             key={index}
-                            className="flex items-center gap-2 bg-[#fcf9f3] px-4 py-2 rounded-xl border border-[#c4c8bd]/20 group"
+                            className="flex items-center gap-2 bg-background px-4 py-2 rounded-xl border border-outline-variant/20 group"
                           >
-                            <span className="font-bold text-[#2b3d22]">{slot}</span>
+                            <span className="font-bold text-primary">{slot}</span>
                             <button 
                               type="button"
                               onClick={() => setTimeSlots(timeSlots.filter((_, i) => i !== index))}
@@ -1208,8 +1208,8 @@ export default function SettingsPage() {
               <div className="space-y-12">
                 <section>
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-black text-[#2b3d22] flex items-center gap-3">
-                      <Database className="text-[#5c6146]" />
+                    <h3 className="text-2xl font-black text-primary flex items-center gap-3">
+                      <Database className="text-secondary" />
                       إدارة قاعدة البيانات
                     </h3>
                     <Link 
@@ -1222,41 +1222,41 @@ export default function SettingsPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-[#fcf9f3] p-8 rounded-[32px] border border-[#c4c8bd]/30 space-y-4">
-                      <h4 className="font-black text-[#2b3d22] flex items-center gap-2">
+                    <div className="bg-background p-8 rounded-[32px] border border-outline-variant/30 space-y-4">
+                      <h4 className="font-black text-primary flex items-center gap-2">
                         <History size={18} />
                         النسخ الاحتياطي
                       </h4>
-                      <p className="text-sm text-[#5c6146] font-bold leading-relaxed">
+                      <p className="text-sm text-secondary font-bold leading-relaxed">
                         قم بحماية بياناتك من خلال إنشاء نسخ احتياطية دورية. يمكنك تحميل قاعدة البيانات بالكامل بصيغة JSON.
                       </p>
                       <div className="pt-4 flex gap-3">
-                        <Link to="/backup" className="flex-1 bg-[#2b3d22] text-white py-3 rounded-xl font-bold text-center hover:opacity-90 transition-all">
+                        <Link to="/backup" className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-center hover:opacity-90 transition-all">
                           مركز النسخ
                         </Link>
                         <button 
                           onClick={() => {
                             window.location.hash = '#/database-management';
                           }}
-                          className="flex-1 bg-white border border-[#c4c8bd]/50 text-[#2b3d22] py-3 rounded-xl font-bold hover:bg-[#fcf9f3] transition-all"
+                          className="flex-1 bg-white border border-outline-variant/50 text-primary py-3 rounded-xl font-bold hover:bg-background transition-all"
                         >
                           تصدير سريع
                         </button>
                       </div>
                     </div>
 
-                    <div className="bg-[#fcf9f3] p-8 rounded-[32px] border border-[#c4c8bd]/30 space-y-4">
-                      <h4 className="font-black text-[#2b3d22] flex items-center gap-2">
+                    <div className="bg-background p-8 rounded-[32px] border border-outline-variant/30 space-y-4">
+                      <h4 className="font-black text-primary flex items-center gap-2">
                         <CloudUpload size={18} />
                         استيراد البيانات
                       </h4>
-                      <p className="text-sm text-[#5c6146] font-bold leading-relaxed">
+                      <p className="text-sm text-secondary font-bold leading-relaxed">
                         هل لديك بيانات سابقة في ملف Excel؟ يمكنك استيراد المواد الكيميائية، الأجهزة، والأساتذة دفعة واحدة.
                       </p>
                       <div className="pt-4">
                         <button 
                           onClick={() => fileInputRef.current?.click()}
-                          className="w-full bg-[#e1e6c3] text-[#2b3d22] py-3 rounded-xl font-bold hover:bg-[#2b3d22] hover:text-white transition-all"
+                          className="w-full bg-secondary-container text-primary py-3 rounded-xl font-bold hover:bg-primary hover:text-white transition-all"
                         >
                           اختيار ملف Excel (.xlsx)
                         </button>
@@ -1265,8 +1265,8 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
                     <ShieldAlert size={24} className="text-red-600" />
                     صيانة البيانات
                   </h3>
@@ -1290,8 +1290,8 @@ export default function SettingsPage() {
               <div className="space-y-12">
                 <section>
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-black text-[#2b3d22] flex items-center gap-3">
-                      <Lock className="text-[#5c6146]" />
+                    <h3 className="text-2xl font-black text-primary flex items-center gap-3">
+                      <Lock className="text-secondary" />
                       أمان الحساب
                     </h3>
                     <button 
@@ -1303,13 +1303,13 @@ export default function SettingsPage() {
                       إرسال رابط إعادة تعيين كلمة المرور
                     </button>
                   </div>
-                  <div className="bg-[#fcf9f3] p-8 rounded-[32px] border border-[#c4c8bd]/30">
-                    <p className="text-sm font-bold text-[#5c6146] mb-6">تغيير كلمة المرور الخاصة بك بانتظام يعزز أمان بياناتك.</p>
+                  <div className="bg-background p-8 rounded-[32px] border border-outline-variant/30">
+                    <p className="text-sm font-bold text-secondary mb-6">تغيير كلمة المرور الخاصة بك بانتظام يعزز أمان بياناتك.</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3">
-                          <label className="text-sm font-black text-[#5c6146] mr-2">كلمة المرور الجديدة</label>
+                          <label className="text-sm font-black text-secondary mr-2">كلمة المرور الجديدة</label>
                           <input 
-                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold" 
+                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold" 
                             type="password" 
                             placeholder="••••••••"
                             value={newPassword}
@@ -1317,9 +1317,9 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div className="space-y-3">
-                          <label className="text-sm font-black text-[#5c6146] mr-2">تأكيد كلمة المرور</label>
+                          <label className="text-sm font-black text-secondary mr-2">تأكيد كلمة المرور</label>
                           <input 
-                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold" 
+                            className="w-full bg-white border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold" 
                             type="password" 
                             placeholder="••••••••"
                             value={confirmPassword}
@@ -1355,7 +1355,7 @@ export default function SettingsPage() {
                         <button 
                           onClick={handleUpdatePassword}
                           disabled={isUpdatingPassword || !newPassword}
-                          className="flex items-center gap-4 px-12 py-5 bg-[#2b3d22] text-white rounded-3xl font-black shadow-[0_15px_40px_rgba(43,61,34,0.3)] hover:scale-[1.03] active:scale-[0.97] transition-all disabled:opacity-50"
+                          className="flex items-center gap-4 px-12 py-5 bg-primary text-white rounded-3xl font-black shadow-[0_15px_40px_rgba(43,61,34,0.3)] hover:scale-[1.03] active:scale-[0.97] transition-all disabled:opacity-50"
                         >
                           {isUpdatingPassword ? (
                             <Loader2 size={24} className="animate-spin" />
@@ -1368,20 +1368,20 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Users className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Users className="text-secondary" />
                     ربط الحسابات
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Google */}
-                    <div className="bg-[#fcf9f3] p-6 rounded-3xl border border-[#c4c8bd]/30 flex flex-col items-center text-center gap-4">
+                    <div className="bg-background p-6 rounded-3xl border border-outline-variant/30 flex flex-col items-center text-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
                         <Chrome className="text-[#4285F4]" size={24} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-[#2b3d22]">Google</h4>
-                        <p className="text-xs text-[#5c6146] mt-1">
+                        <h4 className="font-bold text-primary">Google</h4>
+                        <p className="text-xs text-secondary mt-1">
                           {auth.currentUser?.providerData.some(p => p.providerId === 'google.com') 
                             ? 'مرتبط بنجاح' 
                             : 'غير مرتبط'}
@@ -1405,13 +1405,13 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Facebook */}
-                    <div className="bg-[#fcf9f3] p-6 rounded-3xl border border-[#c4c8bd]/30 flex flex-col items-center text-center gap-4">
+                    <div className="bg-background p-6 rounded-3xl border border-outline-variant/30 flex flex-col items-center text-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
                         <Facebook className="text-[#1877F2]" size={24} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-[#2b3d22]">Facebook</h4>
-                        <p className="text-xs text-[#5c6146] mt-1">
+                        <h4 className="font-bold text-primary">Facebook</h4>
+                        <p className="text-xs text-secondary mt-1">
                           {auth.currentUser?.providerData.some(p => p.providerId === 'facebook.com') 
                             ? 'مرتبط بنجاح' 
                             : 'غير مرتبط'}
@@ -1436,18 +1436,18 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Database className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Database className="text-secondary" />
                     قاعدة البيانات والنسخ الاحتياطي
                   </h3>
-                  <div className="bg-[#2b3d22] text-white p-10 rounded-[40px] relative overflow-hidden group shadow-2xl">
+                  <div className="bg-primary text-white p-10 rounded-[40px] relative overflow-hidden group shadow-2xl">
                     <div className="relative z-10">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                         <div className="space-y-4">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                              <History size={24} className="text-[#d3e9c3]" />
+                              <History size={24} className="text-primary-fixed" />
                             </div>
                             <div>
                               <p className="text-xs font-black opacity-60 uppercase tracking-widest">آخر مزامنة</p>
@@ -1476,7 +1476,7 @@ export default function SettingsPage() {
                             )}
                             استيراد من XLS
                           </button>
-                          <button className="bg-[#d3e9c3] text-[#2b3d22] px-8 py-5 rounded-[24px] font-black flex items-center gap-3 hover:bg-white transition-all shadow-xl hover:-translate-y-1 active:translate-y-0">
+                          <button className="bg-primary-fixed text-primary px-8 py-5 rounded-[24px] font-black flex items-center gap-3 hover:bg-white transition-all shadow-xl hover:-translate-y-1 active:translate-y-0">
                             <CloudUpload size={24} />
                             تصدير نسخة احتياطية (.json)
                           </button>
@@ -1487,9 +1487,9 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
+                <section className="pt-12 border-t border-outline-variant/20">
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-black text-[#2b3d22] flex items-center gap-3">
+                    <h3 className="text-2xl font-black text-primary flex items-center gap-3">
                       <ShieldAlert className="text-red-500" />
                       مصحح الصلاحيات المتقدم
                     </h3>
@@ -1504,19 +1504,19 @@ export default function SettingsPage() {
                     </button>
                   </div>
 
-                  <div className="bg-[#fcf9f3] p-8 rounded-[32px] border-2 border-red-100/50">
-                    <p className="text-sm font-bold text-[#5c6146] mb-6">سيقوم نظام الفحص بمحاولة كتابة بيانات تجريبية في المسارات المطلوبة للكشف عن أي عوائق في الصلاحيات.</p>
+                  <div className="bg-background p-8 rounded-[32px] border-2 border-red-100/50">
+                    <p className="text-sm font-bold text-secondary mb-6">سيقوم نظام الفحص بمحاولة كتابة بيانات تجريبية في المسارات المطلوبة للكشف عن أي عوائق في الصلاحيات.</p>
                     
                     <div className="space-y-4">
                       {fixResults.map((res, i) => (
-                        <div key={i} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#c4c8bd]/20">
+                        <div key={i} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-outline-variant/20">
                           <div className="flex items-center gap-3">
                             {res.success ? (
                               <CheckCircle2 size={20} className="text-green-500" />
                             ) : (
                               <AlertCircle size={20} className="text-red-500" />
                             )}
-                            <span className="font-bold text-[#2b3d22]">{res.name}</span>
+                            <span className="font-bold text-primary">{res.name}</span>
                           </div>
                           {!res.success && (
                             <span className="text-[10px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-mono">
@@ -1540,16 +1540,16 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Database className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Database className="text-secondary" />
                     حالة الاتصال بقاعدة البيانات
                   </h3>
-                  <div className="bg-[#fcf9f3] p-8 rounded-[32px] border-2 border-dashed border-[#c4c8bd]/30">
+                  <div className="bg-background p-8 rounded-[32px] border-2 border-dashed border-outline-variant/30">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="text-right">
-                        <h4 className="text-lg font-black text-[#2b3d22] mb-1">اختبار الاتصال بـ Firestore</h4>
-                        <p className="text-sm text-[#5c6146] opacity-80">تأكد من أن قاعدة البيانات مفعلة وتعمل بشكل صحيح في Firebase Console.</p>
+                        <h4 className="text-lg font-black text-primary mb-1">اختبار الاتصال بـ Firestore</h4>
+                        <p className="text-sm text-secondary opacity-80">تأكد من أن قاعدة البيانات مفعلة وتعمل بشكل صحيح في Firebase Console.</p>
                       </div>
                       <button
                         onClick={checkConnection}
@@ -1558,7 +1558,7 @@ export default function SettingsPage() {
                           "px-8 py-4 rounded-2xl font-black transition-all flex items-center gap-3 shadow-lg active:scale-95",
                           connectionStatus === 'success' ? "bg-green-600 text-white" :
                           connectionStatus === 'error' ? "bg-red-600 text-white" :
-                          "bg-[#2b3d22] text-white hover:opacity-90"
+                          "bg-primary text-white hover:opacity-90"
                         )}
                       >
                         {isCheckingConnection ? (
@@ -1598,27 +1598,27 @@ export default function SettingsPage() {
                   </div>
                 </section>
 
-                <section className="pt-12 border-t border-[#c4c8bd]/20">
-                  <h3 className="text-2xl font-black text-[#2b3d22] mb-8 flex items-center gap-3">
-                    <Globe className="text-[#5c6146]" />
+                <section className="pt-12 border-t border-outline-variant/20">
+                  <h3 className="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                    <Globe className="text-secondary" />
                     تفضيلات النظام
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">لغة الواجهة</label>
-                      <select className="w-full bg-[#fcf9f3] border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-[#2b3d22] transition-all font-bold appearance-none">
+                      <label className="text-sm font-black text-secondary mr-2">لغة الواجهة</label>
+                      <select className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all font-bold appearance-none">
                         <option>العربية (الافتراضية)</option>
                         <option>Français (قريباً)</option>
                         <option>English (قريباً)</option>
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <label className="text-sm font-black text-[#5c6146] mr-2">الوضع الليلي</label>
-                      <div className="flex items-center gap-4 bg-[#fcf9f3] p-4 rounded-[20px] border-2 border-transparent">
-                        <div className="w-12 h-6 bg-[#c4c8bd] rounded-full relative cursor-not-allowed opacity-50">
+                      <label className="text-sm font-black text-secondary mr-2">الوضع الليلي</label>
+                      <div className="flex items-center gap-4 bg-background p-4 rounded-[20px] border-2 border-transparent">
+                        <div className="w-12 h-6 bg-outline-variant rounded-full relative cursor-not-allowed opacity-50">
                           <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" />
                         </div>
-                        <span className="text-sm font-bold text-[#5c6146] opacity-50">غير متاح حالياً</span>
+                        <span className="text-sm font-bold text-secondary opacity-50">غير متاح حالياً</span>
                       </div>
                     </div>
                   </div>
@@ -1638,7 +1638,7 @@ export default function SettingsPage() {
         <button 
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full bg-[#2b3d22] text-white py-5 rounded-[28px] font-black shadow-[0_20px_50px_rgba(43,61,34,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-4 border border-white/10"
+          className="w-full bg-primary text-white py-5 rounded-[28px] font-black shadow-[0_20px_50px_rgba(43,61,34,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-4 border border-white/10"
         >
           {isSaving ? (
             <>

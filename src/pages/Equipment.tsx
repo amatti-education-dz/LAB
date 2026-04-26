@@ -39,6 +39,7 @@ import { cn } from '../lib/utils';
 import { getEquipmentIntelligence, ensureApiKey } from '../services/geminiService';
 import { PDFService } from '../services/pdfService';
 import { logActivity, LogAction, LogModule } from '../services/loggingService';
+import QRScanner from '../components/QRScanner';
 
 interface Equipment {
   id: string;
@@ -88,12 +89,21 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [qrCodeItem, setQrCodeItem] = useState<Equipment | null>(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const targetId = searchParams.get('id');
     if (targetId && equipment.length > 0) {
-      const item = equipment.find(e => e.id === targetId);
+      // Just set search term to target ID so it filters
+      let actualId = targetId;
+      if (targetId.startsWith('APP_ID_')) {
+        const parts = targetId.split('_');
+        actualId = parts.slice(2, -1).join('_'); // Extracted ID
+      }
+      setSearchTerm(actualId);
+      
+      const item = equipment.find(e => e.id === targetId || e.id === actualId);
       if (item) {
         setEditingEquipment(item);
         setNewEquipment({
@@ -933,6 +943,13 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
               تحديث ذكي للكل
             </button>
             <button 
+              onClick={() => setIsQRScannerOpen(true)}
+              className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95"
+            >
+              <QrCode size={20} />
+              مسح QR
+            </button>
+            <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
               className="bg-white text-primary border-2 border-primary/10 px-6 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-primary/5 hover:border-primary transition-all shadow-xl active:scale-95 disabled:opacity-50"
@@ -1659,7 +1676,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-[#1a2744] text-white px-8 py-5 rounded-[32px] shadow-2xl flex items-center gap-10 min-w-[600px]"
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-8 py-5 rounded-[32px] shadow-2xl flex items-center gap-10 min-w-[600px]"
           >
             <div className="flex flex-col">
               <span className="text-sm font-black">{selectedIds.length} صنف مختار</span>
@@ -1910,6 +1927,45 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
               <p className="text-xs font-black text-primary">{bulkProgress.current} من {bulkProgress.total}</p>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isQRScannerOpen && (
+          <QRScanner
+            onClose={() => setIsQRScannerOpen(false)}
+            onScan={(data) => {
+              setIsQRScannerOpen(false);
+              let actualId = data;
+              if (data.startsWith('APP_ID_')) {
+                const parts = data.split('_');
+                actualId = parts.slice(2, -1).join('_');
+              }
+              setSearchTerm(actualId);
+              // Find item and pre-fill AddModal (or just filter list)
+              const item = equipment.find(e => e.id === actualId || e.id === data);
+              if (item) {
+                setEditingEquipment(item);
+                setNewEquipment({
+                  name: item.name,
+                  type: item.type,
+                  serialNumber: item.serialNumber,
+                  status: item.status,
+                  totalQuantity: item.totalQuantity,
+                  availableQuantity: item.availableQuantity,
+                  brokenQuantity: item.brokenQuantity,
+                  supplier: item.supplier || '',
+                  location: item.location || '',
+                  notes: item.notes || '',
+                  foundationalInventory: item.foundationalInventory || '',
+                  decennialReview: item.decennialReview || ''
+                });
+                setIsAddModalOpen(true);
+              } else {
+                alert('عذراً، لم يتم العثور على الصنف بهذه الشيفرة.');
+              }
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

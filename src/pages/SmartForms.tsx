@@ -54,21 +54,17 @@ export default function SmartForms() {
   const handleExportPDF = async () => {
     if (!selectedTemplate) return;
     
-    const columns = [
-      { title: 'اسم البند', dataKey: 'name' },
-      { title: 'الكمية', dataKey: 'quantity' },
-      { title: 'الحالة', dataKey: 'condition' }
-    ];
+    const headers = ['اسم البند', 'الكمية', 'الحالة'];
 
-    const data = formData.items.map(item => ({
-      name: item.name,
-      quantity: item.quantity,
-      condition: item.condition
-    }));
+    const data = formData.items.map(item => ([
+      item.name,
+      item.quantity,
+      item.condition
+    ]));
 
     PDFService.generateTablePDF(
       selectedTemplate.title,
-      columns,
+      headers,
       data,
       `${selectedTemplate.id}.pdf`
     );

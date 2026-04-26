@@ -90,6 +90,8 @@
   .dark {
     --color-primary: var(--color-dark-primary);
     --color-primary-container: var(--color-dark-primary-container);
+    --color-secondary: #c5caa8;
+    --color-secondary-container: #444840;
     --color-surface: var(--color-dark-surface);
     --color-surface-container: var(--color-dark-surface-container);
     --color-surface-container-low: #23231f;
@@ -100,6 +102,9 @@
     --color-on-surface: var(--color-dark-on-surface);
     --color-on-background: var(--color-dark-on-surface);
     --color-on-primary: #1c1c18;
+    --color-on-primary-container: #d3e9c3;
+    --color-on-secondary: #2b3d22;
+    --color-on-secondary-container: #e1e6c3;
     --color-outline: #8e9287;
     --color-outline-variant: #444840;
   }
@@ -142,6 +147,8 @@
     margin: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    font-family: "ManaraDocsAmatti", "Amiri", "Cairo", sans-serif !important;
+    direction: rtl !important;
   }
 
   @page {
@@ -163,6 +170,14 @@
     padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+  }
+
+  /* Force table cells to align correctly in Arabic */
+  table {
+    direction: rtl !important;
+  }
+  th, td {
+    text-align: right !important;
   }
 }
 

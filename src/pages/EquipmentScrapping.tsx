@@ -306,7 +306,7 @@ export default function EquipmentScrapping() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcf9f3] pb-24 rtl font-sans" dir="rtl">
+    <div className="min-h-screen bg-background pb-24 rtl font-sans" dir="rtl">
       <Helmet>
         <title>إسقاط التجهيزات | الأرضية الرقمية للمخابر</title>
       </Helmet>

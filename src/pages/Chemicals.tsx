@@ -33,8 +33,8 @@ import { getChemicalIntelligence, ChemicalIntelligence, ensureApiKey } from '../
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logActivity, LogAction, LogModule } from '../services/loggingService';
-
 import { PDFService } from '../services/pdfService';
+import QRScanner from '../components/QRScanner';
 
 interface Chemical {
   id: string;
@@ -96,6 +96,7 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
   const [suggestedUpdate, setSuggestedUpdate] = useState<ChemicalIntelligence | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Chemical; direction: 'asc' | 'desc' } | null>(null);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return 'غير محدد';
@@ -126,15 +127,31 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chemical));
       setChemicals(items);
-      if (items.length > 0 && !selectedChemical) {
+      
+      const targetId = searchParams.get('id');
+      if (targetId) {
+        let actualId = targetId;
+        if (targetId.startsWith('APP_ID_')) {
+          const parts = targetId.split('_');
+          actualId = parts.slice(2, -1).join('_');
+        }
+        setSearchTerm(actualId);
+        const item = items.find(e => e.id === targetId || e.id === actualId);
+        if (item) {
+          setSelectedChemical(item);
+        } else if (items.length > 0 && !selectedChemical) {
+          setSelectedChemical(items[0]);
+        }
+      } else if (items.length > 0 && !selectedChemical) {
         setSelectedChemical(items[0]);
       }
+      
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'chemicals');
     });
     return () => unsubscribe();
-  }, []);
+  }, [searchParams]);
 
   const handleAddChemical = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -830,6 +847,13 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
               className="hidden" 
               accept=".xls,.xlsx"
             />
+            <button 
+              onClick={() => setIsQRScannerOpen(true)}
+              className="bg-white text-secondary border border-outline/10 px-6 py-3.5 rounded-full flex items-center gap-2 font-bold hover:bg-surface-container-high transition-all active:scale-95 shadow-sm"
+            >
+              <QrCode size={20} />
+              مسح QR
+            </button>
             <button 
               onClick={handlePrintList}
               className="bg-white text-secondary border border-outline/10 px-6 py-3.5 rounded-full flex items-center gap-2 font-bold hover:bg-surface-container-high transition-all active:scale-95 shadow-sm"
@@ -1800,6 +1824,33 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isQRScannerOpen && (
+          <QRScanner
+            onClose={() => setIsQRScannerOpen(false)}
+            onScan={(data) => {
+              setIsQRScannerOpen(false);
+              let actualId = data;
+              if (data.startsWith('APP_ID_')) {
+                const parts = data.split('_');
+                actualId = parts.slice(2, -1).join('_');
+              }
+              setSearchTerm(actualId);
+              // Find item
+              const item = chemicals.find(e => e.id === actualId || e.id === data);
+              if (item) {
+                setSelectedChemical(item);
+                setEditingChemical(item);
+                setIsAddModalOpen(true);
+                // Also scroll top or let modal show
+              } else {
+                alert('عذراً، لم يتم العثور على المادة بهذه الشيفرة.');
+              }
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

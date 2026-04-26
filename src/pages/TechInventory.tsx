@@ -116,21 +116,21 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
       value: devices.length.toString(), 
       trend: 'أجهزة مسجلة', 
       icon: Cpu, 
-      color: 'bg-[#4a7c59]/10 text-[#4a7c59]' 
+      color: 'bg-primary/10 text-primary' 
     },
     { 
       label: 'الحالة التشغيلية', 
       value: devices.length > 0 ? `${Math.round((devices.filter(d => d.status === 'functional').length / devices.length) * 100)}%` : '0%', 
       trend: 'جاهزية الأجهزة', 
       icon: Activity, 
-      color: 'bg-[#8bc34a]/10 text-[#8bc34a]' 
+      color: 'bg-emerald-500/10 text-emerald-500' 
     },
     { 
       label: 'بانتظار الصيانة', 
       value: devices.filter(d => d.status === 'maintenance').length.toString().padStart(2, '0'), 
       trend: 'تنبيه نشط', 
       icon: RefreshCw, 
-      color: 'bg-[#d4a574]/10 text-[#d4a574]' 
+      color: 'bg-amber-500/10 text-amber-500' 
     },
     { 
       label: 'أجهزة خارج الخدمة', 
@@ -265,18 +265,18 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
                       جهاز حساس
                     </div>
                   )}
-                  <div className="absolute top-6 right-6 bg-[#4a7c59]/90 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                  <div className="absolute top-6 right-6 bg-primary/90 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
                     {device.location || 'مخبر غير محدد'}
                   </div>
                   <div className="absolute bottom-6 left-6 bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 shadow-lg">
-                    <span className="text-[10px] font-black text-[#4a7c59] uppercase tracking-widest">ID: {device.serialNumber || 'N/A'}</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">ID: {device.serialNumber || 'N/A'}</span>
                   </div>
                 </div>
 
                 <div className="p-8 space-y-6 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <h3 className="text-2xl font-black text-[#4a7c59] font-serif leading-tight">{device.smartNameAr || device.name}</h3>
+                      <h3 className="text-2xl font-black text-primary font-serif leading-tight">{device.smartNameAr || device.name}</h3>
                       <div className={cn(
                         "w-4 h-4 rounded-full shadow-[0_0_15px]",
                         device.status === 'functional' ? "bg-green-500 shadow-green-500/50" : 
@@ -289,7 +289,7 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
                   <div className="space-y-4 bg-surface-container-low/30 p-6 rounded-3xl border border-outline/5">
                     <div className="flex justify-between text-sm font-bold">
                       <span className="text-on-surface/40">الرقم التسلسلي:</span>
-                      <span className="text-[#4a7c59] font-mono">{device.serialNumber || '---'}</span>
+                      <span className="text-primary font-mono">{device.serialNumber || '---'}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold items-center">
                       <span className="text-on-surface/40">حالة المعايرة:</span>
@@ -300,12 +300,12 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
                             منتهية
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 text-[#4a7c59] text-[10px] font-black">
+                          <div className="flex items-center gap-1 text-primary text-[10px] font-black">
                             <CheckCircle2 size={12} />
                             محدثة
                           </div>
                         )}
-                        <span className="text-[#4a7c59]">{device.nextCalibration || 'غير مسجل'}</span>
+                        <span className="text-primary">{device.nextCalibration || 'غير مسجل'}</span>
                       </div>
                     </div>
                   </div>
@@ -313,13 +313,13 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
                   <div className="pt-4 flex gap-3">
                     <button 
                       onClick={() => setSelectedDevice(device)}
-                      className="flex-1 bg-white border-2 border-[#4a7c59]/10 text-[#4a7c59] py-4 rounded-full font-black text-xs hover:bg-[#4a7c59] hover:text-white transition-all active:scale-95 shadow-sm"
+                      className="flex-1 bg-white border-2 border-primary/10 text-primary py-4 rounded-full font-black text-xs hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm"
                     >
                       المواصفات الكاملة
                     </button>
                     <button 
                       onClick={() => navigate(`/equipment?id=${device.id}`)}
-                      className="w-14 h-14 flex items-center justify-center rounded-full bg-white border-2 border-[#4a7c59]/10 text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-all active:scale-95 shadow-sm"
+                      className="w-14 h-14 flex items-center justify-center rounded-full bg-white border-2 border-primary/10 text-primary hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm"
                     >
                       <Settings size={20} />
                     </button>
@@ -335,11 +335,11 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
           onClick={() => navigate('/equipment')}
           className="group bg-surface-container-low/50 border-4 border-dashed border-outline/10 rounded-[40px] p-12 flex flex-col items-center justify-center gap-6 hover:bg-surface-container-low transition-all duration-500 min-h-[500px]"
         >
-          <div className="w-20 h-20 rounded-[28px] bg-white flex items-center justify-center text-[#4a7c59] shadow-xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+          <div className="w-20 h-20 rounded-[28px] bg-white flex items-center justify-center text-primary shadow-xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
             <Plus size={40} />
           </div>
           <div className="text-center space-y-2">
-            <h4 className="text-2xl font-black text-[#4a7c59] font-serif">إضافة جهاز جديد</h4>
+            <h4 className="text-2xl font-black text-primary font-serif">إضافة جهاز جديد</h4>
             <p className="text-sm text-on-surface/40 font-bold">تسجيل عتاد تكنولوجي عالي الدقة</p>
           </div>
         </button>
@@ -411,7 +411,7 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
               <div className="flex-1 p-10 overflow-y-auto space-y-8">
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
-                    <h4 className="text-2xl font-black text-[#4a7c59]">المواصفات التقنية</h4>
+                    <h4 className="text-2xl font-black text-primary">المواصفات التقنية</h4>
                     <p className="text-sm text-on-surface/40 font-bold">تفاصيل العتاد والأداء</p>
                   </div>
                   <div className={cn(
@@ -433,32 +433,32 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
                   ].map((spec, i) => (
                     <div key={i} className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline/5">
                       <p className="text-[10px] text-on-surface/40 font-black uppercase tracking-widest mb-1">{spec.label}</p>
-                      <p className="text-sm font-bold text-[#4a7c59]">{spec.value}</p>
+                      <p className="text-sm font-bold text-primary">{spec.value}</p>
                     </div>
                   ))}
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-xl font-black text-[#4a7c59] flex items-center gap-3">
+                  <h4 className="text-xl font-black text-primary flex items-center gap-3">
                     <ShieldCheck size={24} />
                     حالة المعايرة والضمان
                   </h4>
-                  <div className="bg-[#4a7c59]/5 p-6 rounded-3xl border border-[#4a7c59]/10 space-y-4">
+                  <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-4">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#4a7c59] shadow-sm">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
                           <Activity size={20} />
                         </div>
                         <div>
                           <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest">تاريخ آخر معايرة</p>
-                          <p className="font-bold text-[#4a7c59]">{selectedDevice.lastCalibration || 'غير مسجل'}</p>
+                          <p className="font-bold text-primary">{selectedDevice.lastCalibration || 'غير مسجل'}</p>
                         </div>
                       </div>
                       <div className="text-left">
                         <p className="text-xs text-on-surface/40 font-black uppercase tracking-widest">الموعد القادم</p>
                         <p className={cn(
                           "font-bold",
-                          selectedDevice.nextCalibration && new Date(selectedDevice.nextCalibration) < new Date() ? "text-error" : "text-[#4a7c59]"
+                          selectedDevice.nextCalibration && new Date(selectedDevice.nextCalibration) < new Date() ? "text-error" : "text-primary"
                         )}>
                           {selectedDevice.nextCalibration || 'غير محدد'}
                         </p>

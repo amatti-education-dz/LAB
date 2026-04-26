@@ -49,15 +49,15 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-[#fcf9f3] flex items-center justify-center p-4 font-sans">
-          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl shadow-[#2b3d22]/10 p-8 border border-[#2b3d22]/5">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 font-sans">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl shadow-primary/10 p-8 border border-primary/5">
             <div className="flex flex-col items-center text-center space-y-6">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
                 <AlertTriangle className="w-10 h-10 text-red-500" />
               </div>
 
               <div className="space-y-2">
-                <h1 className="text-2xl font-bold text-[#2b3d22]">
+                <h1 className="text-2xl font-bold text-primary">
                   {isFirestoreError ? 'خطأ في قاعدة البيانات' : 'حدث خطأ غير متوقع'}
                 </h1>
                 <p className="text-gray-600 leading-relaxed">
@@ -77,7 +77,7 @@ class ErrorBoundary extends Component<Props, State> {
               <div className="flex flex-col w-full gap-3">
                 <button
                   onClick={this.handleReset}
-                  className="w-full py-4 bg-[#2b3d22] text-white rounded-2xl font-semibold hover:bg-[#1a2615] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#2b3d22]/20"
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                 >
                   <RefreshCcw className="w-5 h-5" />
                   تحديث الصفحة
@@ -88,7 +88,7 @@ class ErrorBoundary extends Component<Props, State> {
                     href="https://console.firebase.google.com/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-4 bg-white text-[#2b3d22] border-2 border-[#2b3d22]/10 rounded-2xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-white text-primary border-2 border-primary/10 rounded-2xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
                   >
                     <ExternalLink className="w-5 h-5" />
                     فتح Firebase Console

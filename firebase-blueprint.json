@@ -188,7 +188,7 @@
       "schema": "UserProfile",
       "description": "Collection of user profiles"
     },
-    "users/{userId}/chemicals": {
+    "schools/{schoolId}/chemicals": {
       "schema": "Chemical",
       "description": "User-specific collection of chemical reagents"
     },

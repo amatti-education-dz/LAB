@@ -36,7 +36,7 @@ import {
   Clock,
   Sparkles,
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ErrorBoundary from './ErrorBoundary';
@@ -187,8 +187,8 @@ export default function Layout() {
           />
           {isSidebarOpen && (
             <div className="text-center mt-2">
-              <h1 className="text-lg font-bold text-[#2b3d22]">الأرضية الرقمية — فضاء موظفوا المخابر</h1>
-              <p className="text-[10px] text-[#5c6146] font-medium leading-tight">وزارة التربية الوطنية</p>
+              <h1 className="text-lg font-bold text-primary">الأرضية الرقمية — فضاء موظفوا المخابر</h1>
+              <p className="text-[10px] text-secondary font-medium leading-tight">وزارة التربية الوطنية</p>
             </div>
           )}
         </div>
@@ -406,7 +406,16 @@ export default function Layout() {
         <main className="p-8 print:p-0">
           <Breadcrumbs />
           <ErrorBoundary>
-            <Outlet />
+            <Suspense fallback={
+              <div className="flex justify-center items-center h-64 w-full">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <p className="text-secondary font-bold animate-pulse text-sm">جاري التحميل...</p>
+                </div>
+              </div>
+            }>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
       </div>

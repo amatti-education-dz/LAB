@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, collection, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, collection, enableIndexedDbPersistence, setLogLevel } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -26,6 +26,9 @@ export const analytics = (() => {
   }
 })();
 
+// Suppress Firestore offline warnings which are completely normal for a PWA
+setLogLevel('silent');
+
 // Enable Offline Persistence
 if (typeof window !== 'undefined') {
   enableIndexedDbPersistence(db).catch((err) => {
@@ -48,35 +51,26 @@ if (typeof window !== 'undefined') {
 
 export const storage = getStorage(app);
 
+export const getCurrentSchoolId = () => {
+  return localStorage.getItem('currentSchoolId') || 'school_123';
+};
+
 /**
  * Gets a user-scoped collection reference.
- * Path: users/{userId}/{collectionName}
+ * Path: schools/{schoolId}/{collectionName}
  */
 export const getUserCollection = (collectionName: string) => {
   if (!auth.currentUser) {
     console.error("DEBUG: getUserCollection called without auth.currentUser. Collection:", collectionName);
     throw new Error("User must be authenticated to access personal data");
   }
-  const path = `users/${auth.currentUser.uid}/${collectionName}`;
+  const schoolId = getCurrentSchoolId();
+  const path = `schools/${schoolId}/${collectionName}`;
   console.log(`DEBUG: Getting collection at path: ${path}`);
-  return collection(db, 'users', auth.currentUser.uid, collectionName);
+  return collection(db, 'schools', schoolId, collectionName);
 };
 
-// Connection test as per critical guidelines
-async function testConnection() {
-  try {
-    // Attempt to fetch a non-existent document from server to test connectivity
-    await getDocFromServer(doc(db, '_connection_test_', 'ping'));
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('the client is offline') || errorMessage.includes('Permission denied')) {
-      const offlineMsg = "خطأ في الاتصال بقاعدة البيانات: يرجى التأكد من إنشاء قاعدة بيانات Firestore في Firebase Console (lab-education-dz) وتفعيلها في وضع الإنتاج.";
-      console.error("CRITICAL: " + offlineMsg);
-      // We don't throw here to avoid crashing the whole app immediately if it's just a background check
-    }
-  }
-}
-testConnection();
+
 
 export enum OperationType {
   CREATE = 'create',
@@ -117,9 +111,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     errorMessage 
   });
 
-  if (errorMessage.includes('the client is offline')) {
-    const offlineMsg = "فشل الاتصال بقاعدة البيانات. يرجى التأكد من إنشاء قاعدة بيانات Firestore في Firebase Console (lab-education-dz) وتفعيلها في وضع الإنتاج.";
-    console.error(offlineMsg);
+  if (errorMessage.includes('the client is offline') || errorMessage.includes('Failed to get document from cache')) {
+    const offlineMsg = "أنت في وضع عدم الاتصال (Offline). يتم استخدام البيانات المحفوظة محلياً، وسيتم المزامنة تلقائياً عند عودة الاتصال.";
+    console.log(offlineMsg);
+    
+    // We still throw an error so the calling function knows the operation couldn't fully complete via network (if it was forcing network), 
+    // but with a friendly message instead of a scary configuration warning.
     throw new Error(JSON.stringify({
       error: offlineMsg,
       isOffline: true,

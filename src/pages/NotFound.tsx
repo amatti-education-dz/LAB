@@ -8,7 +8,7 @@ export default function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#fcf9f3] flex flex-col items-center justify-center p-6 rtl" dir="rtl">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 rtl" dir="rtl">
       <Helmet>
         <title>الصفحة غير موجودة | الأرضية الرقمية للمخابر</title>
       </Helmet>

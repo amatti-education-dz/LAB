@@ -493,7 +493,7 @@ export default function Dashboard() {
 
           <button 
             onClick={handleExportTemplate}
-            className="bg-secondary-container text-primary-dim px-8 py-4 rounded-full text-[0.875rem] font-bold flex items-center gap-3 shadow-ambient hover:bg-[#d5dbc0] hover:-translate-y-[2px] hover:shadow-ambient-hover transition-all duration-300 ease-out active:scale-95"
+            className="bg-secondary-container text-primary-dim px-8 py-4 rounded-full text-[0.875rem] font-bold flex items-center gap-3 shadow-ambient hover:brightness-95 hover:-translate-y-[2px] hover:shadow-ambient-hover transition-all duration-300 ease-out active:scale-95"
           >
             <Database size={20} />
             تصدير الهيكل المرجعي

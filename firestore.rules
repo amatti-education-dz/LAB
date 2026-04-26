@@ -22,12 +22,36 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // SCHOOL ROLE HELPERS (MULTI-USER)
+    // -------------------------------------------------------------------------
+    function getMemberDoc(schoolId) {
+      return get(/databases/$(database)/documents/schools/$(schoolId)/members/$(request.auth.uid)).data;
+    }
+
+    function isSchoolMember(schoolId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/schools/$(schoolId)/members/$(request.auth.uid));
+    }
+
+    function hasRole(schoolId, roleName) {
+      return isSchoolMember(schoolId) && getMemberDoc(schoolId).role == roleName;
+    }
+
+    function isDirector(schoolId) { return hasRole(schoolId, 'director'); }
+    function isLabTech(schoolId) { return hasRole(schoolId, 'labtech'); }
+    function isTeacher(schoolId) { return hasRole(schoolId, 'teacher'); }
+
+    // Teachers can read lab schedules etc., but cannot edit inventory or members
+    function canEditInventory(schoolId) {
+      return isDirector(schoolId) || isLabTech(schoolId);
+    }
+    
+    // -------------------------------------------------------------------------
     // ENTITY VALIDATORS (PILLAR 2)
     // -------------------------------------------------------------------------
 
     function isValidChemical(data) {
-      return data.keys().hasAll(['nameAr', 'quantity', 'unit']) &&
-             data.nameAr is string && data.nameAr.size() > 0 &&
+      return data.keys().hasAll(['nameEn', 'quantity', 'unit']) &&
+             data.nameEn is string && data.nameEn.size() > 0 &&
              data.quantity is number;
     }
 
@@ -47,31 +71,72 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // USER SANDBOXES (PILLAR 1 & 6)
+    // NEW MULTI-USER SCHOOL SANDBOXES
     // -------------------------------------------------------------------------
+    match /schools/{schoolId} {
+      // Base school doc access
+      allow get: if isSchoolMember(schoolId);
+      
+      // School Members collection
+      match /members/{userId} {
+        // Anyone in the school can list members
+        allow get, list: if isSchoolMember(schoolId);
+        
+        // Members creation: directors can add anyone. Users can add themselves (for demo bootstrap).
+        allow create: if isValidId(userId) && (
+          isDirector(schoolId) || isOwner(userId)
+        );
+        
+        // Members update: users can't upgrade their own role.
+        allow update: if isValidId(userId) && (
+          isDirector(schoolId) || 
+          (isOwner(userId) && !('role' in incoming().diff(existing()).affectedKeys()))
+        );
+        
+        // Members delete: only directors
+        allow delete: if isDirector(schoolId) && isValidId(userId);
+      }
+      
+      // School collections
+      match /{collection}/{docId} {
+        // Members can read anything in their school sandbox
+        allow get, list: if isSchoolMember(schoolId);
+        
+        // Writes are role-gated
+        // - Directors and LabTechs can write to any collection
+        // - Teachers can only write to non-inventory collections (like lab schedules)
+        allow create, update: if isSchoolMember(schoolId) && isValidId(docId) && (
+          canEditInventory(schoolId) || 
+          (isTeacher(schoolId) && collection != 'chemicals' && collection != 'equipment' && collection != 'inventory_cards_registry' && collection != 'settings')
+        );
+        
+        // Deletions allowed by directors and labtechs. Teachers cannot delete.
+        allow delete: if isSchoolMember(schoolId) && isValidId(docId) && canEditInventory(schoolId);
+      }
+      
+      // Deeper subcollections
+      match /{collection}/{docId}/{subCollection}/{subId} {
+        allow get, list: if isSchoolMember(schoolId);
+        allow create, update: if isSchoolMember(schoolId) && isValidId(subId) && (
+          canEditInventory(schoolId) ||
+          (isTeacher(schoolId) && collection != 'chemicals' && collection != 'equipment' && collection != 'inventory_cards_registry')
+        );
+        allow delete: if isSchoolMember(schoolId) && isValidId(subId) && canEditInventory(schoolId);
+      }
+    }
 
+    // -------------------------------------------------------------------------
+    // LEGACY USER SANDBOXES (to prevent breaking any unmigrated parts)
+    // -------------------------------------------------------------------------
     match /users/{userId} {
-      // Allow the user to document their own profile/settings
       allow list: if isOwner(userId);
       allow get, write: if isOwner(userId) && isValidId(userId);
       
-      // All user-owned collections follow the same list/get split (PILLAR 3)
       match /{collection}/{docId} {
         allow list: if isOwner(userId);
         allow get: if isOwner(userId) && isValidId(docId);
-        
-        // Base write for non-validated collections
         allow write: if isOwner(userId) && isValidId(docId);
-        
-        // Hardened writes for specific collections (PILLAR 4)
-        allow create, update: if isOwner(userId) && isValidId(docId) && (
-          (collection == 'chemicals' && isValidChemical(incoming())) ||
-          (collection == 'equipment' && isValidEquipment(incoming())) ||
-          (collection != 'chemicals' && collection != 'equipment')
-        );
       }
-      
-      // Support for deeper paths (e.g. notifications)
       match /{collection}/{docId}/{subCollection}/{subId} {
         allow list: if isOwner(userId);
         allow get, write: if isOwner(userId) && isValidId(subId);
