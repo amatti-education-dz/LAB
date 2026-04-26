@@ -697,6 +697,213 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
     reader.readAsBinaryString(file);
   };
 
+  const handlePrintInventoryCards = (items: Chemical[]) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('يرجى السماح بالنوافذ المنبثقة لطباعة البطاقات');
+      return;
+    }
+
+    const today = new Date();
+    const formattedDate = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+    const academicYear = "2025/2026"; // Should ideally be dynamic
+    const schoolName = "بوحازم عبد المجيد - عين كرشة";
+    const stateName = "أم البواقي";
+
+    const cardsHtml = items.map((c, index) => {
+      const stateAr = c.state === 'solid' ? 'صلب' : c.state === 'liquid' ? 'سائل' : 'غاز';
+      const hazardAr = c.hazardClass === 'danger' ? (c.ghs?.[0] ? GHS_LABELS[c.ghs[0]] : 'خطر') : 'آمن';
+      const ghsIcon = c.ghs?.[0] ? '☠️' : '—'; // Simplified for the card format
+
+      return `
+        <div class="pcard">
+          <div class="ph">
+            <div class="ph-r">مديرية التربية لولاية: ${stateName}<br>ثانوية: ${schoolName}</div>
+            <div class="ph-c">الجمهورية الجزائرية الديمقراطية الشعبية<br>وزارة التربية الوطنية</div>
+            <div class="ph-l">السنة الدراسية: ${academicYear}</div>
+          </div>
+          <div class="pcard-title">بطاقة مخزون — مادة كيميائية</div>
+          <div class="ic-years">
+            <span><b>الرمز:</b> ${index + 1}</span>
+            <span><b>وحدة القياس:</b> ${c.unit}</span>
+          </div>
+          <div class="ic-meta" style="grid-template-columns:repeat(3,1fr)">
+            <div class="ic-mf"><div class="ml">الاسم بالعربية</div><div class="mv" style="font-weight:700">${c.nameAr}</div></div>
+            <div class="ic-mf"><div class="ml">PRODUIT CHIMIQUE</div><div class="mv" style="direction:ltr;font-size:5pt">${c.nameEn}</div></div>
+            <div class="ic-mf" style="border-left:none"><div class="ml">ختم المؤسسة</div><div class="mv ic-stamp"></div></div>
+          </div>
+          <div class="ic-sec"><div class="ist">الصيغة الكيميائية:</div><div class="idl" style="direction:ltr;font-family:monospace;font-size:8pt;font-weight:700">${c.formula}</div></div>
+          <div class="ic-row2">
+            <div class="ic-col"><div class="ist">الحالة الفيزيائية:</div><div class="idl">${stateAr}</div></div>
+            <div class="ic-col"><div class="ist">الرف:</div><div class="idl" style="font-weight:700">${c.shelf}</div></div>
+            <div class="ic-col"><div class="ist">رمز GHS:</div><div class="idl" style="font-size:10pt;text-align:center">${ghsIcon}</div></div>
+          </div>
+          <div class="ic-sec">
+            <div class="ist">الخطورة / DANGER:</div>
+            <div class="idl" style="font-size:5pt">${hazardAr}</div>
+          </div>
+          <div class="ic-sec">
+            <div class="ist">ملاحظات السلامة:</div>
+            <div class="idl" style="font-size:5pt">${c.notes || 'تجنب التلامس المباشر، تخزين في وعاء مغلق.'}</div>
+          </div>
+          <table class="ic-tbl">
+            <thead>
+              <tr>
+                <th rowspan="2">التاريخ</th><th colspan="2">رقم سند الطلب</th><th rowspan="2">المصدر/الاتجاه</th><th rowspan="2">الثمن</th><th colspan="3">الكمية</th><th rowspan="2">ملاحظات</th>
+              </tr>
+              <tr><th>دخول</th><th>خروج</th><th>دخول</th><th>خروج</th><th>المخزون</th></tr>
+            </thead>
+            <tbody>
+              <tr><td></td><td></td><td></td><td></td><td></td><td>${c.quantity} ${c.unit}</td><td>..........</td><td>..........</td><td style="font-size:5pt">نقل ←</td></tr>
+              ${Array(8).fill('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+              <tr><td></td><td></td><td></td><td></td><td></td><td>..........</td><td>..........</td><td>..........</td><td style="font-size:5pt">ينقل ←</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pcard">
+          <div class="back-title">تتمة — ${c.nameAr} (${c.formula}) | رقم: <u>${index + 1}</u></div>
+          <div class="ic-bsec">
+            <div class="ic-btitle">حركة المخزون — تتمة</div>
+            <table class="ic-tbl">
+              <thead>
+                <tr>
+                  <th rowspan="2">التاريخ</th><th colspan="2">رقم سند الطلب</th><th rowspan="2">المصدر/الاتجاه</th><th rowspan="2">الثمن</th><th colspan="3">الكمية</th><th rowspan="2">ملاحظات</th>
+                </tr>
+                <tr><th>دخول</th><th>خروج</th><th>دخول</th><th>خروج</th><th>المخزون</th></tr>
+              </thead>
+              <tbody>
+                <tr><td></td><td></td><td></td><td></td><td></td><td>..........</td><td>..........</td><td>..........</td><td style="font-size:5pt">نقل ←</td></tr>
+                ${Array(10).fill('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+                <tr><td></td><td></td><td></td><td></td><td></td><td>..........</td><td>..........</td><td>..........</td><td style="font-size:5pt">ينقل ←</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ic-bsec" style="margin-top:6mm">
+            <div class="ic-btitle">شروط السلامة عند التخزين</div>
+            <table class="ic-tbl">
+              <thead>
+                <tr><th width="35%">التاريخ</th><th width="40%">الإجراء / الملاحظة</th><th width="25%">الإمضاء</th></tr>
+              </thead>
+              <tbody>
+                ${Array(5).fill('<tr><td></td><td></td><td></td></tr>').join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <title>بطاقات مخزون المواد الكيميائية — ${items.length} مادة</title>
+          <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; background: #eef2f7; font-size: 7pt; }
+
+            #toolbar {
+                position: sticky; top: 0; z-index: 99;
+                background: #1a2744; color: white;
+                padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13px;
+            }
+            #toolbar h3 { flex: 1; }
+            .tb-btn { padding: 7px 16px; border: none; border-radius: 7px; cursor: pointer; font-weight: 700; font-size: 12px; font-family: Cairo, sans-serif; }
+            .tb-print { background: #00b894; color: white; }
+            .tb-close  { background: #e74c3c; color: white; }
+            .tb-info   { background: rgba(255,255,255,0.15); color: white; font-size: 11px; padding: 5px 10px; border-radius: 5px; }
+
+            #body { padding: 12px; }
+
+            .pcard {
+                background: white; border: 1px solid #000; padding: 3mm 4mm;
+                direction: rtl; width: 138mm; height: 200mm;
+                margin: 8px auto; display: flex; flex-direction: column; overflow: hidden;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.12); gap: 1.5mm;
+            }
+
+            .ph {
+                display: grid; grid-template-columns: 1fr 1.5fr 1fr;
+                border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 0;
+                font-size: 5.5pt; gap: 2px; align-items: start; flex-shrink: 0;
+            }
+            .ph-r { text-align: right; font-weight: bold; line-height: 1.45; }
+            .ph-c { text-align: center; font-weight: bold; line-height: 1.45; }
+            .ph-l { text-align: left; font-size: 5pt; line-height: 1.45; }
+
+            .pcard-title {
+                text-align: center; font-size: 8pt; font-weight: bold;
+                text-decoration: underline; text-underline-offset: 1.5px;
+                flex-shrink: 0; padding: 0.5mm 0;
+            }
+
+            .ic-years { display: flex; justify-content: space-between; font-size: 5.5pt; flex-shrink: 0; }
+            .ic-meta { display: grid; border: 1px solid #000; flex-shrink: 0; }
+            .ic-mf { padding: 1mm 2mm; border-left: 1px solid #000; font-size: 5.5pt; }
+            .ic-mf:last-child { border-left: none; }
+            .ic-ml { font-weight: bold; font-size: 5pt; color: #333; }
+            .mv { border-bottom: 1px solid #777; min-height: 8mm; padding: 0.5mm 1mm; font-size: 5.5pt; }
+            .ic-stamp { min-height: 10mm !important; }
+
+            .ic-sec { flex-shrink: 0; }
+            .ist { font-weight: bold; font-size: 5.5pt; margin-bottom: 0.5mm; }
+            .idl { border-bottom: 1px dotted #666; min-height: 5mm; padding: 0.5mm 1mm; font-size: 5.5pt; margin-bottom: 1mm; }
+
+            .ic-row2 { display: flex; gap: 3mm; flex-shrink: 0; }
+            .ic-col { flex: 1; }
+
+            .ic-tbl { width: 100%; border-collapse: collapse; font-size: 5.5pt; flex-shrink: 0; table-layout: fixed; }
+            .ic-tbl th, .ic-tbl td { border: 1px solid #000; padding: 0.5mm 1mm; text-align: center; }
+            .ic-tbl th { background: #dde4ee; font-size: 5pt; white-space: nowrap; }
+            .ic-tbl td { height: 5mm; }
+
+            .back-title {
+                text-align: center; font-weight: bold; font-size: 6pt;
+                border-bottom: 1.5px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm;
+                flex-shrink: 0;
+            }
+
+            .ic-bsec { flex-shrink: 0; margin-bottom: 2mm; }
+            .ic-btitle {
+                font-weight: bold; font-size: 5.5pt;
+                background: #eef1f7; border: 1px solid #000; border-bottom: none;
+                padding: 1mm 3mm; text-align: center;
+            }
+
+            @media print {
+                #toolbar { display: none !important; }
+                body { background: white !important; margin: 0; }
+                #body { padding: 0 !important; }
+                @page { size: A5 portrait; margin: 5mm; }
+                .pcard {
+                    width: 100% !important; height: calc(210mm - 10mm) !important;
+                    margin: 0 !important; padding: 4mm 5mm !important;
+                    border: 1.5px solid #000 !important; box-shadow: none !important;
+                    page-break-after: always !important; break-after: page !important;
+                    overflow: hidden !important;
+                }
+                .pcard:last-child { page-break-after: avoid !important; break-after: avoid !important; }
+                tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div id="toolbar">
+              <h3>🖨️ بطاقات مخزون المواد الكيميائية — ${items.length} مادة</h3>
+              <span class="tb-info">📄 A5 recto-verso — بطاقة واحدة لكل صفحة</span>
+              <button class="tb-btn tb-print" onclick="window.print()">🖨️ طباعة الآن</button>
+              <button class="tb-btn tb-close" onclick="window.close()">✕ إغلاق</button>
+          </div>
+          <div id="body">
+            ${cardsHtml}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handlePrint = (c: Chemical) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -860,6 +1067,13 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
             >
               <Printer size={20} />
               طباعة القائمة
+            </button>
+            <button 
+              onClick={() => handlePrintInventoryCards(sortedChemicals)}
+              className="bg-white text-secondary border border-outline/10 px-6 py-3.5 rounded-full flex items-center gap-2 font-bold hover:bg-surface-container-high transition-all active:scale-95 shadow-sm"
+            >
+              <Printer size={20} className="text-primary" />
+              طباعة بطاقات المخزون
             </button>
             <button 
               onClick={handleExportPDF}
@@ -1333,9 +1547,16 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
                   <button 
                     onClick={() => handlePrint(selectedChemical)}
                     className="p-3 bg-surface-container-low hover:bg-surface-container-high border border-outline/10 rounded-full text-primary transition-all active:scale-90"
-                    title="طباعة البطاقة"
+                    title="طباعة تعريفية"
                   >
                     <Printer size={22} />
+                  </button>
+                  <button 
+                    onClick={() => handlePrintInventoryCards([selectedChemical])}
+                    className="p-3 bg-surface-container-low hover:bg-surface-container-high border border-outline/10 rounded-full text-primary transition-all active:scale-90"
+                    title="طباعة بطاقة المخزون"
+                  >
+                    <FileText size={22} />
                   </button>
                   <button 
                     onClick={() => handleRequestSmartUpdate()}
@@ -1421,6 +1642,17 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
               >
                 <Download size={18} />
                 تصدير المختار
+              </button>
+
+              <button 
+                onClick={() => {
+                  const items = chemicals.filter(c => selectedIds.includes(c.id));
+                  handlePrintInventoryCards(items);
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary/20 text-primary-container hover:bg-primary hover:text-white transition-all font-black text-sm"
+              >
+                <Printer size={18} />
+                بطاقات المختار
               </button>
 
               <button 
