@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { db, getUserCollection } from '../firebase';
 import { getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { 
@@ -44,6 +45,7 @@ interface BudgetConfig {
 }
 
 export default function BudgetPurchases() {
+  const { schoolId } = useSchool();
   const [activeTab, setActiveTab] = useState<'budget' | 'orders' | 'suppliers'>('orders');
   const [loading, setLoading] = useState(true);
   
@@ -74,23 +76,23 @@ export default function BudgetPurchases() {
     setLoading(true);
     try {
       // Fetch budget
-      const budgetDoc = await getDoc(doc(getUserCollection('settings'), 'budget'));
+      const budgetDoc = await getDoc(doc(getUserCollection(schoolId, 'budget_config'), 'budget'));
       if (budgetDoc.exists()) {
         setBudgetConfig(budgetDoc.data() as BudgetConfig);
       }
 
       // Fetch suppliers
-      const supSnap = await getDocs(query(getUserCollection('suppliers')));
+      const supSnap = await getDocs(query(getUserCollection(schoolId, 'suppliers')));
       const supData = supSnap.docs.map(d => ({ id: d.id, ...d.data() } as Supplier));
       setSuppliers(supData);
 
       // Fetch orders
-      const ordSnap = await getDocs(query(getUserCollection('purchase_orders'), orderBy('date', 'desc')));
+      const ordSnap = await getDocs(query(getUserCollection(schoolId, 'purchase_orders'), orderBy('date', 'desc')));
       const ordData = ordSnap.docs.map(d => ({ id: d.id, ...d.data() } as PurchaseOrder));
       setOrders(ordData);
 
       // Fetch low stock chemicals to suggest
-      const chemSnap = await getDocs(query(getUserCollection('chemicals')));
+      const chemSnap = await getDocs(query(getUserCollection(schoolId, 'chemicals')));
       const lowStock = chemSnap.docs
         .map(d => d.data())
         .filter(c => Number(c.quantity) <= 5)
@@ -116,9 +118,9 @@ export default function BudgetPurchases() {
   const handleSaveSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentSupplier.id) {
-      await updateDoc(doc(getUserCollection('suppliers'), currentSupplier.id), currentSupplier);
+      await updateDoc(doc(getUserCollection(schoolId, 'suppliers'), currentSupplier.id), currentSupplier);
     } else {
-      await addDoc(getUserCollection('suppliers'), currentSupplier);
+      await addDoc(getUserCollection(schoolId, 'suppliers'), currentSupplier);
     }
     setShowSupplierModal(false);
     fetchData();
@@ -160,25 +162,25 @@ export default function BudgetPurchases() {
     };
 
     if (currentOrder.id) {
-      await updateDoc(doc(getUserCollection('purchase_orders'), currentOrder.id), orderData);
+      await updateDoc(doc(getUserCollection(schoolId, 'purchase_orders'), currentOrder.id), orderData);
     } else {
       // Auto-generate logic could go here
       const newOrderNum = 'PO-' + new Date().getFullYear() + '-' + Math.floor(Math.random()*1000).toString().padStart(3, '0');
-      await addDoc(getUserCollection('purchase_orders'), { ...orderData, orderNumber: currentOrder.orderNumber || newOrderNum });
+      await addDoc(getUserCollection(schoolId, 'purchase_orders'), { ...orderData, orderNumber: currentOrder.orderNumber || newOrderNum });
     }
     setShowOrderModal(false);
     fetchData();
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    await updateDoc(doc(getUserCollection('purchase_orders'), orderId), { status });
+    await updateDoc(doc(getUserCollection(schoolId, 'purchase_orders'), orderId), { status });
     fetchData();
   };
 
   // Handler for Budget
   const handleSaveBudget = async (e: React.FormEvent) => {
     e.preventDefault();
-    await setDoc(doc(getUserCollection('settings'), 'budget'), budgetConfig);
+    await setDoc(doc(getUserCollection(schoolId, 'budget_config'), 'budget'), budgetConfig);
     setShowBudgetModal(false);
     fetchData();
   };

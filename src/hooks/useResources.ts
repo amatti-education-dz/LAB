@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onSnapshot, query, orderBy } from 'firebase/firestore';
 import { auth, getUserCollection, handleFirestoreError, OperationType } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 
 export interface ResourceItem {
   id: string;
@@ -11,6 +12,7 @@ export interface ResourceItem {
 }
 
 export function useResources() {
+  const { schoolId } = useSchool();
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,8 +22,8 @@ export function useResources() {
       return;
     }
 
-    const equipmentRef = getUserCollection('equipment');
-    const chemicalsRef = getUserCollection('chemicals');
+    const equipmentRef = getUserCollection(schoolId, 'equipment');
+    const chemicalsRef = getUserCollection(schoolId, 'equipment');
 
     const unsubEquipment = onSnapshot(query(equipmentRef, orderBy('name')), (snapshot) => {
       const equipItems = snapshot.docs.map(doc => ({

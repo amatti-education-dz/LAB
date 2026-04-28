@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { db, getUserCollection } from '../firebase';
 import { getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -32,6 +33,7 @@ const CATEGORIES = [
 ];
 
 export default function SchoolLegislation() {
+  const { schoolId } = useSchool();
   const [documents, setDocuments] = useState<LegislationDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +58,7 @@ export default function SchoolLegislation() {
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const q = query(getUserCollection('school_legislation'), orderBy('createdAt', 'desc'));
+      const q = query(getUserCollection(schoolId, 'equipment'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       const docsData = snap.docs.map(d => ({ id: d.id, ...d.data() } as LegislationDoc));
       setDocuments(docsData);
@@ -113,7 +115,7 @@ export default function SchoolLegislation() {
         }
       }
 
-      await addDoc(getUserCollection('school_legislation'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         title: newDoc.title,
         reference: newDoc.reference || '',
         date: newDoc.date || '',
@@ -141,7 +143,7 @@ export default function SchoolLegislation() {
     
     try {
       // Delete from Firestore
-      await deleteDoc(doc(getUserCollection('school_legislation'), docId));
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), docId));
       
       // Optionally delete from Storage if fileUrl exists
       if (fileUrl) {

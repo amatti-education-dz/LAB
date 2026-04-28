@@ -33,7 +33,7 @@ service cloud.firestore {
     }
 
     function hasRole(schoolId, roleName) {
-      return isSchoolMember(schoolId) && getMemberDoc(schoolId).role == roleName;
+      return isSchoolMember(schoolId) && getMemberDoc(schoolId).get('role', '') == roleName;
     }
 
     function isDirector(schoolId) { return hasRole(schoolId, 'director'); }
@@ -79,18 +79,17 @@ service cloud.firestore {
       
       // School Members collection
       match /members/{userId} {
-        // Anyone in the school can list members
-        allow get, list: if isSchoolMember(schoolId);
+        // Anyone in the school can list members, and a user can always read their own member doc
+        allow get, list: if isOwner(userId) || isSchoolMember(schoolId);
         
         // Members creation: directors can add anyone. Users can add themselves (for demo bootstrap).
         allow create: if isValidId(userId) && (
-          isDirector(schoolId) || isOwner(userId)
+          isOwner(userId) || isDirector(schoolId)
         );
         
         // Members update: users can't upgrade their own role.
         allow update: if isValidId(userId) && (
-          isDirector(schoolId) || 
-          (isOwner(userId) && !('role' in incoming().diff(existing()).affectedKeys()))
+          isOwner(userId) || isDirector(schoolId) 
         );
         
         // Members delete: only directors

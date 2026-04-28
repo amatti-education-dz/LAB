@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { Trash2, Plus, Printer, ChevronLeft, Save, History, FileText, Loader2, CheckCircle2, Clock, Boxes, FileDown, FileJson, ChevronUp, ChevronDown, User, Users, BookOpen, PenTool, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, addDoc, limit, deleteDoc } from 'firebase/firestore';
@@ -52,6 +53,7 @@ interface SavedReport {
 }
 
 export default function DailyReport() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const { timeSlots, loading: loadingTimeSlots } = useTimeSlots();
   const [isTimeManagerOpen, setIsTimeManagerOpen] = useState(false);
@@ -187,7 +189,7 @@ export default function DailyReport() {
   }, []);
 
   useEffect(() => {
-    const q = query(getUserCollection('teachers'));
+    const q = query(getUserCollection(schoolId, 'daily_reports'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 
@@ -206,7 +208,7 @@ export default function DailyReport() {
     if (activeTab === 'history' && auth.currentUser) {
       setIsLoadingHistory(true);
       const q = query(
-        getUserCollection('daily_reports'),
+        getUserCollection(schoolId, 'daily_reports'),
         where('createdBy', '==', auth.currentUser.uid),
         orderBy('date', 'desc')
       );
@@ -231,7 +233,7 @@ export default function DailyReport() {
     if (!auth.currentUser) return '01';
     
     try {
-      const reportsRef = getUserCollection('daily_reports');
+      const reportsRef = getUserCollection(schoolId, 'daily_reports');
       const q = query(
         reportsRef,
         where('createdBy', '==', auth.currentUser.uid),
@@ -256,7 +258,7 @@ export default function DailyReport() {
     if (!auth.currentUser) return;
     
     try {
-      const reportsRef = getUserCollection('daily_reports');
+      const reportsRef = getUserCollection(schoolId, 'daily_reports');
       const q = query(
         reportsRef, 
         where('date', '==', selectedDate), 
@@ -338,7 +340,7 @@ export default function DailyReport() {
     setIsSaving(true);
     try {
       const reportId = `${auth.currentUser.uid}_${date}`;
-      await setDoc(doc(getUserCollection('daily_reports'), reportId), {
+      await setDoc(doc(getUserCollection(schoolId, 'daily_reports'), reportId), {
         date,
         reportNumber,
         dayName: getDayName(date),
@@ -365,7 +367,7 @@ export default function DailyReport() {
     setIsDeleting(true);
     try {
       const reportId = `${auth.currentUser.uid}_${date}`;
-      await deleteDoc(doc(getUserCollection('daily_reports'), reportId));
+      await deleteDoc(doc(getUserCollection(schoolId, 'daily_reports'), reportId));
       
       // Reset state
       setRows([

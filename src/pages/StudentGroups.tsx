@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { getUserCollection } from '../firebase';
 import { addDoc, getDocs, query, orderBy, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Users, Grid, Plus, Trash2, Calendar, User, MessageSquare, CheckCircle2, ShieldAlert, Play, Square, Beaker, Save, X } from 'lucide-react';
@@ -25,6 +26,7 @@ interface LabSession {
 }
 
 export default function StudentGroups() {
+  const { schoolId } = useSchool();
   const [activeTab, setActiveTab] = useState<'classes' | 'sessions'>('sessions');
   const [classes, setClasses] = useState<StudentClass[]>([]);
   const [sessions, setSessions] = useState<LabSession[]>([]);
@@ -52,9 +54,9 @@ export default function StudentGroups() {
     setLoading(true);
     try {
       const [classSnap, sessionSnap, teacherSnap] = await Promise.all([
-        getDocs(query(getUserCollection('student_classes'))),
-        getDocs(query(getUserCollection('lab_sessions'), orderBy('date', 'desc'))),
-        getDocs(query(getUserCollection('teachers')))
+        getDocs(query(getUserCollection(schoolId, 'equipment'))),
+        getDocs(query(getUserCollection(schoolId, 'equipment'), orderBy('date', 'desc'))),
+        getDocs(query(getUserCollection(schoolId, 'equipment')))
       ]);
 
       const classData = classSnap.docs.map(d => ({ id: d.id, ...d.data() } as StudentClass));
@@ -78,7 +80,7 @@ export default function StudentGroups() {
     e.preventDefault();
     try {
       const groupArray = newClass.groups.split(',').map(g => g.trim());
-      await addDoc(getUserCollection('student_classes'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         name: newClass.name,
         level: newClass.level,
         groups: groupArray
@@ -93,7 +95,7 @@ export default function StudentGroups() {
 
   const handleDeleteClass = async (id: string) => {
     if (confirm('هل أنت متأكد من حذف هذا القسم؟')) {
-      await deleteDoc(doc(getUserCollection('student_classes'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), id));
       fetchData();
     }
   };
@@ -104,7 +106,7 @@ export default function StudentGroups() {
       const classObj = classes.find(c => c.id === newSession.classId);
       if (!classObj) return;
 
-      const docRef = await addDoc(getUserCollection('lab_sessions'), {
+      const docRef = await addDoc(getUserCollection(schoolId, 'equipment'), {
         date: serverTimestamp(),
         classId: classObj.id,
         className: classObj.name,
@@ -126,7 +128,7 @@ export default function StudentGroups() {
     if (confirm('إنهاء وحفظ جلسة العمل التطبيقي؟')) {
       try {
         const { updateDoc } = await import('firebase/firestore');
-        await updateDoc(doc(getUserCollection('lab_sessions'), activeSession.id), {
+        await updateDoc(doc(getUserCollection(schoolId, 'equipment'), activeSession.id), {
           status: 'completed'
         });
         setActiveSession(null);
@@ -141,7 +143,7 @@ export default function StudentGroups() {
     e.preventDefault();
     if (!activeSession || incidentModal.benchNum === null) return;
     try {
-      await addDoc(getUserCollection('incident_logs'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         title: `كسر/إتلاف - طاولة ${incidentModal.benchNum}`,
         description: incidentNote,
         date: new Date().toISOString(),

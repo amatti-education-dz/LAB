@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
+import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import * as XLSX from 'xlsx';
 import { useSearchParams } from 'react-router-dom';
 import { 
@@ -79,6 +81,7 @@ const GHS_LABELS: Record<string, string> = {
 };
 
 export default function Chemicals({ isNested = false }: { isNested?: boolean }) {
+  const { schoolId } = useSchool();
   const [searchParams] = useSearchParams();
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,11 +126,16 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
     notes: ''
   });
 
+  const { data: chemicalsList, loading: chemicalsLoading, error } = useFirestoreCollection(
+    query(getUserCollection(schoolId, 'chemicals')),
+    doc => ({ id: doc.id, ...doc.data() } as Chemical),
+    [schoolId]
+  );
+  
   useEffect(() => {
-    const q = query(getUserCollection('chemicals'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chemical));
-      setChemicals(items);
+    if (!chemicalsLoading) {
+      setChemicals(chemicalsList);
+      setLoading(false);
       
       const targetId = searchParams.get('id');
       if (targetId) {
@@ -137,39 +145,34 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
           actualId = parts.slice(2, -1).join('_');
         }
         setSearchTerm(actualId);
-        const item = items.find(e => e.id === targetId || e.id === actualId);
+        const item = chemicalsList.find(e => e.id === targetId || e.id === actualId);
         if (item) {
           setSelectedChemical(item);
-        } else if (items.length > 0 && !selectedChemical) {
-          setSelectedChemical(items[0]);
+        } else if (chemicalsList.length > 0 && !selectedChemical) {
+          setSelectedChemical(chemicalsList[0]);
         }
-      } else if (items.length > 0 && !selectedChemical) {
-        setSelectedChemical(items[0]);
+      } else if (chemicalsList.length > 0 && !selectedChemical) {
+        setSelectedChemical(chemicalsList[0]);
       }
-      
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'chemicals');
-    });
-    return () => unsubscribe();
-  }, [searchParams]);
+    }
+  }, [chemicalsList, chemicalsLoading, searchParams]);
 
   const handleAddChemical = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (editingChemical) {
         const { id } = editingChemical;
-        await updateDoc(doc(getUserCollection('chemicals'), id), {
+        await updateDoc(doc(getUserCollection(schoolId, 'chemicals'), id), {
           ...newChemical,
           updatedAt: serverTimestamp()
         });
-        await logActivity(LogAction.UPDATE, LogModule.CHEMICALS, `تعديل بيانات المادة: ${newChemical.nameAr}`, id);
+        await logActivity(schoolId, LogAction.UPDATE, LogModule.CHEMICALS, `تعديل بيانات المادة: ${newChemical.nameAr}`, id);
       } else {
-        const docRef = await addDoc(getUserCollection('chemicals'), {
+        const docRef = await addDoc(getUserCollection(schoolId, 'chemicals'), {
           ...newChemical,
           createdAt: serverTimestamp()
         });
-        await logActivity(LogAction.CREATE, LogModule.CHEMICALS, `إضافة مادة جديدة: ${newChemical.nameAr}`, docRef.id);
+        await logActivity(schoolId, LogAction.CREATE, LogModule.CHEMICALS, `إضافة مادة جديدة: ${newChemical.nameAr}`, docRef.id);
       }
       setIsAddModalOpen(false);
       setEditingChemical(null);
@@ -268,7 +271,7 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
         expiryDate = date.toISOString().split('T')[0];
       }
 
-      await updateDoc(doc(getUserCollection('chemicals'), selectedChemical.id), {
+      await updateDoc(doc(getUserCollection(schoolId, 'chemicals'), selectedChemical.id), {
         nameEn: suggestedUpdate.nameEn,
         nameAr: suggestedUpdate.nameAr,
         formula: suggestedUpdate.formula,
@@ -319,7 +322,7 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
             expiryDate = date.toISOString().split('T')[0];
           }
 
-          await updateDoc(doc(getUserCollection('chemicals'), c.id), {
+          await updateDoc(doc(getUserCollection(schoolId, 'chemicals'), c.id), {
             nameEn: info.nameEn || c.nameEn,
             nameAr: info.nameAr || c.nameAr,
             formula: info.formula || c.formula,
@@ -359,8 +362,8 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
 
   const handleDeleteChemical = async (id: string, name: string) => {
     try {
-      await deleteDoc(doc(getUserCollection('chemicals'), id));
-      await logActivity(LogAction.DELETE, LogModule.CHEMICALS, `حذف المادة: ${name}`, id);
+      await deleteDoc(doc(getUserCollection(schoolId, 'chemicals'), id));
+      await logActivity(schoolId, LogAction.DELETE, LogModule.CHEMICALS, `حذف المادة: ${name}`, id);
       if (selectedChemical?.id === id) {
         setSelectedChemical(chemicals.find(c => c.id !== id) || null);
       }
@@ -737,7 +740,7 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
           if (rawHazard === 'خطر' || rawHazard.toLowerCase() === 'danger') hazard = 'danger';
           else if (rawHazard === 'آمن' || rawHazard.toLowerCase() === 'safe') hazard = 'safe';
 
-          const docRef = doc(getUserCollection('chemicals'));
+          const docRef = doc(getUserCollection(schoolId, 'chemicals'));
           batch.set(docRef, {
             nameEn: String(nameEn).trim(),
             nameAr: String(nameAr).trim(),
@@ -1155,10 +1158,10 @@ export default function Chemicals({ isNested = false }: { isNested?: boolean }) 
     try {
       const batch = writeBatch(db);
       selectedIds.forEach(id => {
-        batch.delete(doc(getUserCollection('chemicals'), id));
+        batch.delete(doc(getUserCollection(schoolId, 'chemicals'), id));
       });
       await batch.commit();
-      await logActivity(LogAction.DELETE, LogModule.CHEMICALS, `حذف جماعي لـ ${selectedIds.length} مادة`);
+      await logActivity(schoolId, LogAction.DELETE, LogModule.CHEMICALS, `حذف جماعي لـ ${selectedIds.length} مادة`);
       setSelectedIds([]);
       alert('تم الحذف بنجاح!');
     } catch (error) {

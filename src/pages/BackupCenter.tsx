@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Database, 
   Download, 
@@ -33,6 +34,7 @@ const COLLECTIONS_TO_BACKUP = [
 ];
 
 export default function BackupCenter() {
+  const { schoolId } = useSchool();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
@@ -43,7 +45,7 @@ export default function BackupCenter() {
       const fullData: any = {};
       
       for (const collName of COLLECTIONS_TO_BACKUP) {
-        const snap = await getDocs(getUserCollection(collName as any));
+        const snap = await getDocs(getUserCollection(schoolId, collName));
         fullData[collName] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       }
 
@@ -81,7 +83,7 @@ export default function BackupCenter() {
           
           (items as any[]).forEach(item => {
             const { id, ...rest } = item;
-            const docRef = doc(getUserCollection(collName as any));
+            const docRef = doc(getUserCollection(schoolId, collName));
             batch.set(docRef, { ...rest, updatedAt: new Date() });
             totalRecords++;
           });
@@ -104,7 +106,7 @@ export default function BackupCenter() {
     setLoading(true);
     try {
       for (const collName of COLLECTIONS_TO_BACKUP) {
-        const snap = await getDocs(getUserCollection(collName as any));
+        const snap = await getDocs(getUserCollection(schoolId, collName));
         const chunks = [];
         const items = snap.docs;
         for (let i = 0; i < items.length; i += 400) {

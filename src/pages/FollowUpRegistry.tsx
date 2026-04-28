@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { onSnapshot, query } from 'firebase/firestore';
 import { getUserCollection, handleFirestoreError, OperationType } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 import { useTimeSlots } from '../hooks/useTimeSlots';
 import TimeSlotManager from '../components/TimeSlotManager';
 import ClassPicker from '../components/ClassPicker';
@@ -47,6 +48,7 @@ interface ToolUsageEntry {
 
 export default function FollowUpRegistry() {
   const navigate = useNavigate();
+  const { schoolId } = useSchool();
   const [activeTab, setActiveTab] = useState<RegistryTab>('tools');
   const [searchTerm, setSearchTerm] = useState('');
   const [isTimeManagerOpen, setIsTimeManagerOpen] = useState(false);
@@ -170,6 +172,7 @@ export default function FollowUpRegistry() {
 // --- Sub-components for each registry ---
 
 function ToolsRegistry({ searchTerm }: { searchTerm: string }) {
+  const { schoolId } = useSchool();
   const { timeSlots } = useTimeSlots();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [data, setData] = useState<ToolUsageEntry[]>([
@@ -208,7 +211,7 @@ function ToolsRegistry({ searchTerm }: { searchTerm: string }) {
   const [editingEntry, setEditingEntry] = useState<ToolUsageEntry | null>(null);
 
   useEffect(() => {
-    const q = query(getUserCollection('teachers'));
+    const q = query(getUserCollection(schoolId, 'teachers'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 

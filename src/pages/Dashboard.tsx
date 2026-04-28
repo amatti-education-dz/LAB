@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, where, doc, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
@@ -58,6 +59,7 @@ import {
 } from 'recharts';
 
 export default function Dashboard() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -79,7 +81,7 @@ export default function Dashboard() {
   const [expiringItems, setExpiringItems] = useState<any[]>([]);
 
   useEffect(() => {
-    const unsubReports = onSnapshot(getUserCollection('reports'), (snap) => {
+    const unsubReports = onSnapshot(getUserCollection(schoolId, 'reports'), (snap) => {
       setCounts(prev => ({ ...prev, reports: snap.size }));
       const reports = snap.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -88,7 +90,7 @@ export default function Dashboard() {
       setRecentReports(reports);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'reports'));
 
-    const unsubExps = onSnapshot(getUserCollection('experiment_logs'), (snap) => {
+    const unsubExps = onSnapshot(getUserCollection(schoolId, 'experiment_logs'), (snap) => {
       setCounts(prev => ({ ...prev, experiments: snap.size }));
       
       // Calculate last 7 days chart data
@@ -106,12 +108,12 @@ export default function Dashboard() {
       setGraphData(stats);
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'experiment_logs'));
 
-    const unsubEquip = onSnapshot(getUserCollection('equipment'), (snap) => {
+    const unsubEquip = onSnapshot(getUserCollection(schoolId, 'equipment'), (snap) => {
       const broken = snap.docs.filter(doc => ['broken', 'maintenance'].includes(doc.data().status)).length;
       setCounts(prev => ({ ...prev, equipment: snap.size, brokenEquip: broken }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'equipment'));
 
-    const unsubChem = onSnapshot(getUserCollection('chemicals'), (snap) => {
+    const unsubChem = onSnapshot(getUserCollection(schoolId, 'chemicals'), (snap) => {
       const today = new Date();
       const nextMonth = new Date();
       nextMonth.setDate(today.getDate() + 30);
@@ -129,11 +131,11 @@ export default function Dashboard() {
       setExpiringItems(expiring.slice(0, 5));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'chemicals'));
 
-    const unsubTeachers = onSnapshot(getUserCollection('teachers'), (snap) => {
+    const unsubTeachers = onSnapshot(getUserCollection(schoolId, 'teachers'), (snap) => {
       setCounts(prev => ({ ...prev, teachers: snap.size }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'teachers'));
 
-    const unsubIncidents = onSnapshot(getUserCollection('incident_logs'), (snap) => {
+    const unsubIncidents = onSnapshot(getUserCollection(schoolId, 'safety_incidents'), (snap) => {
       setCounts(prev => ({ ...prev, incidents: snap.size }));
     }, (err) => handleFirestoreError(err, OperationType.LIST, 'incident_logs'));
 
@@ -204,7 +206,7 @@ export default function Dashboard() {
 
               if (!collectionName) return;
 
-              const docRef = doc(getUserCollection(collectionName as any));
+              const docRef = doc(getUserCollection(schoolId, 'tasks'));
               
               if (collectionName === 'chemicals') {
                 const quantity = Number(item['الكمية'] || 0);
@@ -294,7 +296,7 @@ export default function Dashboard() {
 
     setIsSmartUpdating(true);
     try {
-      const snap = await getDocs(getUserCollection('equipment'));
+      const snap = await getDocs(getUserCollection(schoolId, 'tasks'));
       const items = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       
       if (items.length === 0) {
@@ -316,7 +318,7 @@ export default function Dashboard() {
 
         const batch = writeBatch(db);
         enrichedData.forEach((update: any) => {
-          const docRef = doc(getUserCollection('equipment'), update.id);
+          const docRef = doc(getUserCollection(schoolId, 'tasks'), update.id);
           batch.update(docRef, {
             smartNameAr: update.smartNameAr,
             smartDescriptionAr: update.smartDescriptionAr,
@@ -346,9 +348,9 @@ export default function Dashboard() {
       const wb = XLSX.utils.book_new();
 
       // Fetch Real Data for each sheet
-      const chemSnap = await getDocs(getUserCollection('chemicals'));
-      const equipSnap = await getDocs(getUserCollection('equipment'));
-      const teachSnap = await getDocs(getUserCollection('teachers'));
+      const chemSnap = await getDocs(getUserCollection(schoolId, 'tasks'));
+      const equipSnap = await getDocs(getUserCollection(schoolId, 'tasks'));
+      const teachSnap = await getDocs(getUserCollection(schoolId, 'tasks'));
 
       // Chemicals Data Mapping
       const chemicalData = chemSnap.docs.map(doc => {

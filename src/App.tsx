@@ -59,6 +59,7 @@ const ChemicalStorage = React.lazy(() => import('./pages/ChemicalStorage'));
 const SchoolLegislation = React.lazy(() => import('./pages/SchoolLegislation'));
 const SafetyGuide = React.lazy(() => import('./pages/SafetyGuide'));
 const LabCalculators = React.lazy(() => import('./pages/LabCalculators'));
+import { SchoolProvider } from './context/SchoolContext';
 const DesignSystem = React.lazy(() => import('./pages/DesignSystem'));
 
 export default function App() {
@@ -89,18 +90,19 @@ export default function App() {
   return (
     <HelmetProvider>
       <ErrorBoundary>
-        <Router>
-          <OfflineBanner />
-          {user && !setupComplete && <FirebaseSetup onComplete={() => setSetupComplete(true)} />}
-          
-          <Suspense fallback={
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-              <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-              <p className="text-primary font-bold animate-pulse">جاري التحميل...</p>
-            </div>
-          }>
-            {(!user || setupComplete) ? (
-              <Routes>
+        <SchoolProvider>
+          <Router>
+            <OfflineBanner />
+            {user && !setupComplete && <FirebaseSetup onComplete={() => setSetupComplete(true)} />}
+            
+            <Suspense fallback={
+              <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="text-primary font-bold animate-pulse">جاري التحميل...</p>
+              </div>
+            }>
+              {(!user || setupComplete) ? (
+                <Routes>
                 <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/data-deletion" element={<DataDeletion />} />
@@ -160,7 +162,8 @@ export default function App() {
             </Routes>
             ) : null}
           </Suspense>
-        </Router>
+          </Router>
+        </SchoolProvider>
       </ErrorBoundary>
     </HelmetProvider>
   );

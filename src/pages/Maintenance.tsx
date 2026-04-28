@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Plus, 
   Search, 
@@ -56,6 +57,7 @@ interface Equipment {
 }
 
 export default function Maintenance() {
+  const { schoolId } = useSchool();
   const [logs, setLogs] = useState<MaintenanceLog[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export default function Maintenance() {
   };
 
   useEffect(() => {
-    const q = query(getUserCollection('maintenance_logs'), orderBy('startDate', 'asc'));
+    const q = query(getUserCollection(schoolId, 'equipment'), orderBy('startDate', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -99,7 +101,7 @@ export default function Maintenance() {
     });
 
     const fetchEquipment = async () => {
-      const snap = await getDocs(getUserCollection('equipment'));
+      const snap = await getDocs(getUserCollection(schoolId, 'equipment'));
       setEquipment(snap.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
     };
     fetchEquipment();
@@ -114,7 +116,7 @@ export default function Maintenance() {
     const selectedEquip = equipment.find(e => e.id === newLog.equipmentId);
     
     try {
-      await addDoc(getUserCollection('maintenance_logs'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         ...newLog,
         equipmentName: selectedEquip?.name || 'غير معروف',
         createdAt: serverTimestamp()
@@ -132,7 +134,7 @@ export default function Maintenance() {
 
   const updateStatus = async (id: string, status: MaintenanceLog['status']) => {
     try {
-      await updateDoc(doc(getUserCollection('maintenance_logs'), id), { 
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), { 
         status,
         completionDate: status === 'completed' ? new Date().toISOString().split('T')[0] : null,
         updatedAt: serverTimestamp()
@@ -145,7 +147,7 @@ export default function Maintenance() {
   const deleteLog = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('maintenance_logs'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, 'maintenance_logs');
     }

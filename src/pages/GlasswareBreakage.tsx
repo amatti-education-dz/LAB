@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Beaker, 
   TrendingUp, 
@@ -66,6 +67,7 @@ const INITIAL_GLASSWARE: Partial<GlasswareItem>[] = [
 ];
 
 export default function GlasswareBreakage({ isNested = false }: { isNested?: boolean }) {
+  const { schoolId } = useSchool();
   const [items, setItems] = useState<GlasswareItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,7 +77,7 @@ export default function GlasswareBreakage({ isNested = false }: { isNested?: boo
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
-    const q = query(getUserCollection('glassware_inventory'));
+    const q = query(getUserCollection(schoolId, 'glassware_inventory'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlasswareItem));
       setItems(docs);
@@ -93,7 +95,7 @@ export default function GlasswareBreakage({ isNested = false }: { isNested?: boo
     setLoading(true);
     try {
       for (const item of INITIAL_GLASSWARE) {
-        await addDoc(getUserCollection('glassware_inventory'), {
+        await addDoc(getUserCollection(schoolId, 'equipment'), {
           ...item,
           createdAt: serverTimestamp()
         });
@@ -108,7 +110,7 @@ export default function GlasswareBreakage({ isNested = false }: { isNested?: boo
 
   const handleUpdateItem = async (id: string, updates: Partial<GlasswareItem>) => {
     try {
-      await updateDoc(doc(getUserCollection('glassware_inventory'), id), updates);
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), updates);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `glassware_inventory/${id}`);
     }
@@ -117,7 +119,7 @@ export default function GlasswareBreakage({ isNested = false }: { isNested?: boo
   const handleRemoveItem = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الصنف؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('glassware_inventory'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `glassware_inventory/${id}`);
     }
@@ -125,7 +127,7 @@ export default function GlasswareBreakage({ isNested = false }: { isNested?: boo
 
   const handleAddItem = async () => {
     try {
-      await addDoc(getUserCollection('glassware_inventory'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         designationFr: 'New Item',
         nameAr: 'صنف جديد',
         type: 'أخرى',

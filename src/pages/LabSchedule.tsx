@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -39,6 +40,7 @@ const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربع�
 const TIME_SLOTS = ['08:00 - 09:00', '09:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '13:00 - 14:00', '14:00 - 15:00', '15:00 - 16:00', '08:00 - 10:00', '10:00 - 12:00', '13:00 - 15:00'];
 
 export default function LabSchedule() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<LabReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ export default function LabSchedule() {
   });
 
   useEffect(() => {
-    const q = query(getUserCollection('lab_schedule'), orderBy('day'), orderBy('time'));
+    const q = query(getUserCollection(schoolId, 'equipment'), orderBy('day'), orderBy('time'));
     const unsub = onSnapshot(q, (snap) => {
       setReservations(snap.docs.map(d => ({ id: d.id, ...d.data() } as LabReservation)));
       setLoading(false);
@@ -81,7 +83,7 @@ export default function LabSchedule() {
     }
 
     try {
-      await addDoc(getUserCollection('lab_schedule'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         ...newRes,
         createdAt: serverTimestamp()
       });
@@ -95,7 +97,7 @@ export default function LabSchedule() {
   const handleDelete = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الحجز؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('lab_schedule'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), id));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, 'lab_schedule');
     }

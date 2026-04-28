@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Settings, 
   User, 
@@ -50,6 +51,7 @@ import { cn } from '../lib/utils';
 import LocationCard, { InstitutionSuggestion } from '../components/LocationCard';
 
 export default function SettingsPage() {
+  const { schoolId } = useSchool();
   const [displayName, setDisplayName] = useState(auth.currentUser?.displayName || '');
   const [email] = useState(auth.currentUser?.email || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -134,7 +136,7 @@ export default function SettingsPage() {
           if (item['المادة'] || item['Subject']) collectionName = 'teachers';
           else if (item['النوع'] || item['Type'] || item['تعيين الجهاز'] || item['اسم الجهاز'] || item['رقم الجرد']) collectionName = 'equipment';
 
-          const docRef = doc(getUserCollection(collectionName));
+          const docRef = doc(getUserCollection(schoolId, 'equipment'));
           
           if (collectionName === 'chemicals') {
             const name = item['الاسم'] || item['Name'] || 'مادة غير مسمى';

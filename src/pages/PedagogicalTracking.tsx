@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { BookOpen, CheckCircle2, AlertCircle, ArrowLeft, Plus, Download, Filter, Search, MoreVertical, Trash2, Edit2, TrendingUp, FileText, Calendar, ExternalLink, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -302,6 +303,7 @@ const INITIAL_DATA: TrackingEntry[] = [
 ];
 
 export default function PedagogicalTracking() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const { timeSlots } = useTimeSlots();
   const [isTimeManagerOpen, setIsTimeManagerOpen] = useState(false);
@@ -354,7 +356,7 @@ export default function PedagogicalTracking() {
   };
 
   useEffect(() => {
-    const q = query(getUserCollection('teachers'));
+    const q = query(getUserCollection(schoolId, 'equipment'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 

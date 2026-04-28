@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   Database, 
   Trash2, 
@@ -35,6 +36,7 @@ interface CollectionStats {
 }
 
 export default function DatabaseManagement() {
+  const { schoolId } = useSchool();
   const [stats, setStats] = useState<CollectionStats[]>([
     { name: 'chemicals', count: 0, label: 'المواد الكيميائية', icon: Database },
     { name: 'equipment', count: 0, label: 'الأجهزة والوسائل', icon: Activity },
@@ -53,7 +55,7 @@ export default function DatabaseManagement() {
     setLoading(true);
     try {
       const newStats = await Promise.all(stats.map(async (stat) => {
-        const snapshot = await getDocs(getUserCollection(stat.name));
+        const snapshot = await getDocs(getUserCollection(schoolId, 'equipment'));
         return { ...stat, count: snapshot.size };
       }));
       setStats(newStats);
@@ -87,7 +89,7 @@ export default function DatabaseManagement() {
     try {
       const allData: any = {};
       await Promise.all(stats.map(async (stat) => {
-        const snapshot = await getDocs(getUserCollection(stat.name));
+        const snapshot = await getDocs(getUserCollection(schoolId, 'equipment'));
         allData[stat.name] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       }));
 
@@ -112,7 +114,7 @@ export default function DatabaseManagement() {
     try {
       const batch = writeBatch(db);
       await Promise.all(stats.map(async (stat) => {
-        const snapshot = await getDocs(getUserCollection(stat.name));
+        const snapshot = await getDocs(getUserCollection(schoolId, 'equipment'));
         snapshot.docs.forEach((doc) => {
           batch.delete(doc.ref);
         });

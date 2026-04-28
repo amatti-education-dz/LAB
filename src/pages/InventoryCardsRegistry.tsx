@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, updateDoc, doc, collection } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
@@ -36,6 +37,7 @@ type SortField = keyof InventoryItem | 'index';
 type SortDirection = 'asc' | 'desc' | null;
 
 export default function InventoryCardsRegistry() {
+  const { schoolId } = useSchool();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +54,7 @@ export default function InventoryCardsRegistry() {
 
   useEffect(() => {
     // Listen to equipment collection
-    const q = query(getUserCollection('equipment'));
+    const q = query(getUserCollection(schoolId, 'equipment'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const equipmentItems = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -91,7 +93,7 @@ export default function InventoryCardsRegistry() {
           else if (value === 'عاطلة' || value === 'مفقودة') finalValue = 'broken';
       }
 
-      await updateDoc(doc(getUserCollection('equipment'), id), {
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), {
         [finalField]: finalValue
       });
     } catch (error) {

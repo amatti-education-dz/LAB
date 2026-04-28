@@ -22,6 +22,7 @@ export enum LogModule {
 }
 
 export async function logActivity(
+  schoolId: string,
   action: LogAction,
   module: LogModule,
   details: string,
@@ -30,7 +31,7 @@ export async function logActivity(
   if (!auth.currentUser) return;
 
   try {
-    await addDoc(getUserCollection('audit_logs'), {
+    await addDoc(getUserCollection(schoolId, 'equipment'), {
       userId: auth.currentUser.uid,
       userName: auth.currentUser.displayName || 'مستخدم',
       userEmail: auth.currentUser.email,

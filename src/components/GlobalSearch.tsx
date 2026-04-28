@@ -3,6 +3,7 @@ import { Search, X, Package, Beaker, User, FileText, ArrowRight } from 'lucide-r
 import { motion, AnimatePresence } from 'motion/react';
 import { query, collection, getDocs, where, limit } from 'firebase/firestore';
 import { db, getUserCollection } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
@@ -20,6 +21,7 @@ interface GlobalSearchProps {
 }
 
 export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
+  const { schoolId } = useSchool();
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,10 +48,10 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       setLoading(true);
       try {
         const [eqSnap, chemSnap, teacherSnap, expSnap] = await Promise.all([
-          getDocs(query(getUserCollection('equipment'), limit(5))),
-          getDocs(query(getUserCollection('chemicals'), limit(5))),
-          getDocs(query(getUserCollection('teachers'), limit(5))),
-          getDocs(query(getUserCollection('experiments'), limit(5)))
+          getDocs(query(getUserCollection(schoolId, 'equipment'), limit(5))),
+          getDocs(query(getUserCollection(schoolId, 'equipment'), limit(5))),
+          getDocs(query(getUserCollection(schoolId, 'equipment'), limit(5))),
+          getDocs(query(getUserCollection(schoolId, 'equipment'), limit(5)))
         ]);
 
         const groupedResults: Record<string, SearchResult[]> = {

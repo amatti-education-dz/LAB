@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { onSnapshot, query, where } from 'firebase/firestore';
 import { getUserCollection, handleFirestoreError, OperationType } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 import { useNavigate } from 'react-router-dom';
 
 interface Equipment {
@@ -73,6 +74,7 @@ const getSmartImage = (name: string, keyword?: string) => {
 
 export default function TechInventory({ isNested = false }: { isNested?: boolean }) {
   const navigate = useNavigate();
+  const { schoolId } = useSchool();
   const [searchTerm, setSearchTerm] = useState('');
   const [devices, setDevices] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export default function TechInventory({ isNested = false }: { isNested?: boolean
   const [filterType, setFilterType] = useState<'all' | 'sensitive'>('all');
 
   useEffect(() => {
-    const q = query(getUserCollection('equipment'), where('type', '==', 'tech'));
+    const q = query(getUserCollection(schoolId, 'equipment'), where('type', '==', 'tech'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();

@@ -175,8 +175,7 @@ export default function DesignSystem() {
                 <h3 className="text-xl font-bold text-on-surface">Hover States (useMotionPrefs)</h3>
                 <motion.div 
                   className="w-full h-48 bg-secondary-container rounded-[32px] border border-outline/10 flex items-center justify-center cursor-pointer"
-                  variants={animations.hoverCard}
-                  whileHover="whileHover"
+                  whileHover={{ y: -8, transition: { duration: 0.2, ease: "easeOut" } }}
                 >
                   <span className="font-bold text-on-secondary-container">Hover me (Snappy Editorial Ease)</span>
                 </motion.div>

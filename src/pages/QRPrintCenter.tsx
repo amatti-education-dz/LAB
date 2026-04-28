@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { db, getUserCollection } from '../firebase';
 import { getDocs, query, orderBy } from 'firebase/firestore';
 import { LayoutDashboard, CheckSquare, Square, Printer, FlaskConical, Monitor } from 'lucide-react';
@@ -22,6 +23,7 @@ interface Chemical {
 type TabType = 'equipment' | 'chemicals';
 
 export default function QRPrintCenter() {
+  const { schoolId } = useSchool();
   const [activeTab, setActiveTab] = useState<TabType>('equipment');
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [chemicalList, setChemicalList] = useState<Chemical[]>([]);
@@ -35,14 +37,14 @@ export default function QRPrintCenter() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const equipSnap = await getDocs(query(getUserCollection('equipment')));
+      const equipSnap = await getDocs(query(getUserCollection(schoolId, 'equipment')));
       const eqData: Equipment[] = [];
       equipSnap.forEach(doc => {
         eqData.push({ id: doc.id, ...doc.data() } as Equipment);
       });
       setEquipmentList(eqData);
 
-      const chemSnap = await getDocs(query(getUserCollection('chemicals')));
+      const chemSnap = await getDocs(query(getUserCollection(schoolId, 'equipment')));
       const chData: Chemical[] = [];
       chemSnap.forEach(doc => {
         chData.push({ id: doc.id, ...doc.data() } as Chemical);

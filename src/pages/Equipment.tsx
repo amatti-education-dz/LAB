@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, orderBy, limit, getDocs, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import * as XLSX from 'xlsx';
@@ -73,6 +74,7 @@ interface MaintenanceLog {
 }
 
 export default function Equipment({ isNested = false }: { isNested?: boolean }) {
+  const { schoolId } = useSchool();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -152,7 +154,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
   });
 
   useEffect(() => {
-    const q = query(getUserCollection('equipment'));
+    const q = query(getUserCollection(schoolId, 'equipment'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment));
       setEquipment(items);
@@ -168,17 +170,17 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     try {
       if (editingEquipment) {
         const { id } = editingEquipment;
-        await updateDoc(doc(getUserCollection('equipment'), id), {
+        await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), {
           ...newEquipment,
           updatedAt: serverTimestamp()
         });
-        await logActivity(LogAction.UPDATE, LogModule.EQUIPMENT, `تعديل بيانات الجهاز: ${newEquipment.name}`, id);
+        await logActivity(schoolId, LogAction.UPDATE, LogModule.EQUIPMENT, `تعديل بيانات الجهاز: ${newEquipment.name}`, id);
       } else {
-        const docRef = await addDoc(getUserCollection('equipment'), {
+        const docRef = await addDoc(getUserCollection(schoolId, 'equipment'), {
           ...newEquipment,
           createdAt: serverTimestamp()
         });
-        await logActivity(LogAction.CREATE, LogModule.EQUIPMENT, `إضافة جهاز جديد: ${newEquipment.name}`, docRef.id);
+        await logActivity(schoolId, LogAction.CREATE, LogModule.EQUIPMENT, `إضافة جهاز جديد: ${newEquipment.name}`, docRef.id);
       }
       setIsAddModalOpen(false);
       setEditingEquipment(null);
@@ -198,8 +200,8 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
 
   const handleDeleteEquipment = async (id: string, name: string) => {
     try {
-      await deleteDoc(doc(getUserCollection('equipment'), id));
-      await logActivity(LogAction.DELETE, LogModule.EQUIPMENT, `حذف الجهاز: ${name}`, id);
+      await deleteDoc(doc(getUserCollection(schoolId, 'equipment'), id));
+      await logActivity(schoolId, LogAction.DELETE, LogModule.EQUIPMENT, `حذف الجهاز: ${name}`, id);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `equipment/${id}`);
     }
@@ -221,7 +223,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
 
         const batch = writeBatch(db);
         data.forEach((item) => {
-          const docRef = doc(getUserCollection('equipment'));
+          const docRef = doc(getUserCollection(schoolId, 'equipment'));
           const type = (item['النوع'] || item['Type'] || 'other').toLowerCase();
           const status = (item['الحالة'] || item['Status'] || 'functional').toLowerCase();
           const name = item['تعيين الجهاز'] || item['الاسم'] || item['Name'] || 'جهاز غير مسمى';
@@ -260,8 +262,8 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
   const handleUpdateStatus = async (id: string, currentStatus: string, newStatus: string) => {
     if (currentStatus === newStatus) return;
     try {
-      await updateDoc(doc(getUserCollection('equipment'), id), { status: newStatus });
-      await addDoc(getUserCollection('maintenance_logs'), {
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), { status: newStatus });
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         equipmentId: id,
         previousStatus: currentStatus,
         newStatus: newStatus,
@@ -277,7 +279,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     setCurrentEquipName(name);
     try {
       const q = query(
-        getUserCollection('maintenance_logs'), 
+        getUserCollection(schoolId, 'equipment'), 
         orderBy('date', 'desc'),
         limit(20)
       );
@@ -606,7 +608,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
 
         const batch = writeBatch(db);
         enrichedData.forEach((update: any) => {
-          const docRef = doc(getUserCollection('equipment'), update.id);
+          const docRef = doc(getUserCollection(schoolId, 'equipment'), update.id);
           batch.update(docRef, {
             smartNameAr: update.smartNameAr,
             smartDescriptionAr: update.smartDescriptionAr,
@@ -709,10 +711,10 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     try {
       const batch = writeBatch(db);
       selectedIds.forEach(id => {
-        batch.delete(doc(getUserCollection('equipment'), id));
+        batch.delete(doc(getUserCollection(schoolId, 'equipment'), id));
       });
       await batch.commit();
-      await logActivity(LogAction.DELETE, LogModule.EQUIPMENT, `حذف جماعي لـ ${selectedIds.length} صنف`);
+      await logActivity(schoolId, LogAction.DELETE, LogModule.EQUIPMENT, `حذف جماعي لـ ${selectedIds.length} صنف`);
       setSelectedIds([]);
       alert('تم الحذف بنجاح!');
     } catch (error) {
@@ -724,13 +726,13 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
     try {
       const batch = writeBatch(db);
       selectedIds.forEach(id => {
-        batch.update(doc(getUserCollection('equipment'), id), { 
+        batch.update(doc(getUserCollection(schoolId, 'equipment'), id), { 
           status,
           updatedAt: serverTimestamp()
         });
       });
       await batch.commit();
-      await logActivity(LogAction.UPDATE, LogModule.EQUIPMENT, `تحديث حالة جماعي (${status}) لـ ${selectedIds.length} صنف`);
+      await logActivity(schoolId, LogAction.UPDATE, LogModule.EQUIPMENT, `تحديث حالة جماعي (${status}) لـ ${selectedIds.length} صنف`);
       setSelectedIds([]);
       alert('تم تحديث الحالة بنجاح!');
     } catch (error) {
@@ -765,7 +767,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
   const handleApproveUpdate = async () => {
     if (!suggestedUpdate || !selectedEquipment) return;
     try {
-      await updateDoc(doc(getUserCollection('equipment'), selectedEquipment.id), {
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), selectedEquipment.id), {
         smartNameAr: suggestedUpdate.smartNameAr,
         smartDescriptionAr: suggestedUpdate.smartDescriptionAr,
         imageKeyword: suggestedUpdate.imageKeyword,
@@ -802,7 +804,7 @@ export default function Equipment({ isNested = false }: { isNested?: boolean }) 
         if (chunkResults) {
           const batch = writeBatch(db);
           chunkResults.forEach(res => {
-            batch.update(doc(getUserCollection('equipment'), res.id), {
+            batch.update(doc(getUserCollection(schoolId, 'equipment'), res.id), {
               smartNameAr: res.smartNameAr,
               smartDescriptionAr: res.smartDescriptionAr,
               imageKeyword: res.imageKeyword,

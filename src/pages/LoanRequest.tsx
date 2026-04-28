@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
@@ -43,6 +44,7 @@ interface Equipment {
 }
 
 export default function LoanRequest() {
+  const { schoolId } = useSchool();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,12 +65,12 @@ export default function LoanRequest() {
 
   useEffect(() => {
     // Fetch teachers for datalist
-    const unsubTeachers = onSnapshot(getUserCollection('teachers'), (snap) => {
+    const unsubTeachers = onSnapshot(getUserCollection(schoolId, 'teachers'), (snap) => {
       setTeachers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Teacher)));
     });
 
     // Fetch equipment for datalist
-    const unsubEquip = onSnapshot(getUserCollection('equipment'), (snap) => {
+    const unsubEquip = onSnapshot(getUserCollection(schoolId, 'equipment'), (snap) => {
       setEquipment(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Equipment)));
     });
 
@@ -130,7 +132,7 @@ export default function LoanRequest() {
 
     setIsSaving(true);
     try {
-      const docRef = await addDoc(getUserCollection('loans'), {
+      const docRef = await addDoc(getUserCollection(schoolId, 'loan_requests'), {
         loanNum,
         requestDate,
         returnDate,
@@ -143,7 +145,7 @@ export default function LoanRequest() {
         createdAt: serverTimestamp()
       });
 
-      await logActivity(LogAction.CREATE, LogModule.EQUIPMENT, `طلب إعارة جديد رقم: ${loanNum} للأستاذ ${teacherName}`, docRef.id);
+      await logActivity(schoolId, LogAction.CREATE, LogModule.EQUIPMENT, `طلب إعارة جديد رقم: ${loanNum} للأستاذ ${teacherName}`, docRef.id);
       setNotification({ message: 'تم حفظ الطلب في السجل بنجاج!', type: 'success' });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'loans');

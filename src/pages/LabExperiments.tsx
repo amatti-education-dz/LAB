@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   FlaskConical, 
   Plus, 
@@ -46,6 +47,7 @@ interface Experiment {
 }
 
 export default function LabExperiments() {
+  const { schoolId } = useSchool();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +71,7 @@ export default function LabExperiments() {
   const [availableMaterials, setAvailableMaterials] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(getUserCollection('experiment_logs'), orderBy('date', 'desc'));
+    const q = query(getUserCollection(schoolId, 'experiment_logs'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map(doc => ({ 
         id: doc.id, 
@@ -82,8 +84,8 @@ export default function LabExperiments() {
 
     // Fetch chemicals and glassware for materials picker
     const fetchMats = async () => {
-      const chemSnap = await getDocs(query(getUserCollection('chemicals')));
-      const glassSnap = await getDocs(query(getUserCollection('equipment')));
+      const chemSnap = await getDocs(query(getUserCollection(schoolId, 'chemicals')));
+      const glassSnap = await getDocs(query(getUserCollection(schoolId, 'equipment')));
       const mats = [
         ...chemSnap.docs.map(d => ({ name: d.data().nameAr, unit: d.data().unit, type: 'chemical' })),
         ...glassSnap.docs.map(d => ({ name: d.data().name, unit: 'قطعة', type: 'equipment' }))
@@ -107,12 +109,12 @@ export default function LabExperiments() {
   const handleAddExperiment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const docRef = await addDoc(getUserCollection('experiment_logs'), {
+      const docRef = await addDoc(getUserCollection(schoolId, 'experiment_logs'), {
         ...newExp,
         date: serverTimestamp(),
         createdAt: serverTimestamp()
       });
-      await logActivity(LogAction.CREATE, LogModule.REPORTS, `تسجيل تجربة جديدة: ${newExp.title}`, docRef.id);
+      await logActivity(schoolId, LogAction.CREATE, LogModule.REPORTS, `تسجيل تجربة جديدة: ${newExp.title}`, docRef.id);
       setIsModalOpen(false);
       setNewExp({
         title: '', teacher: '', subject: 'الفيزياء', level: '', group: '',
@@ -177,10 +179,10 @@ export default function LabExperiments() {
     try {
       const batch = writeBatch(db);
       selectedIds.forEach(id => {
-        batch.delete(doc(getUserCollection('experiment_logs'), id));
+        batch.delete(doc(getUserCollection(schoolId, 'experiment_logs'), id));
       });
       await batch.commit();
-      await logActivity(LogAction.DELETE, LogModule.REPORTS, `حذف جماعي لـ ${selectedIds.length} سجل تجربة`);
+      await logActivity(schoolId, LogAction.DELETE, LogModule.REPORTS, `حذف جماعي لـ ${selectedIds.length} سجل تجربة`);
       setSelectedIds([]);
       alert('تم الحذف بنجاح!');
     } catch (error) {

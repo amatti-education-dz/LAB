@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { 
@@ -26,13 +27,14 @@ interface Report {
 }
 
 export default function ArchivePage() {
+  const { schoolId } = useSchool();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    const q = query(getUserCollection('reports'), orderBy('generatedAt', 'desc'));
+    const q = query(getUserCollection(schoolId, 'reports'), orderBy('generatedAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ 
         id: doc.id, 

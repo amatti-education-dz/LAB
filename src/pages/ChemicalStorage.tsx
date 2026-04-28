@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { db, getUserCollection } from '../firebase';
 import { getDocs, query } from 'firebase/firestore';
 import { analyzeChemicalStorage, StorageAnalysisResult } from '../services/geminiService';
@@ -7,6 +8,7 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import StorageMap from '../components/StorageMap';
 
 export default function ChemicalStorageMatrix() {
+  const { schoolId } = useSchool();
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [chemicals, setChemicals] = useState<any[]>([]);
@@ -19,7 +21,7 @@ export default function ChemicalStorageMatrix() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const chemSnap = await getDocs(query(getUserCollection('chemicals')));
+      const chemSnap = await getDocs(query(getUserCollection(schoolId, 'chemicals')));
       const chemData = chemSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setChemicals(chemData);
     } catch (error) {

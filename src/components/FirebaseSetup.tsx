@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { getDocs, addDoc, doc, setDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, getUserCollection, auth, getCurrentSchoolId } from '../firebase';
+import { db, handleFirestoreError, OperationType, getUserCollection, auth } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 
 export default function FirebaseSetup({ onComplete }: { onComplete?: () => void }) {
+  const { schoolId } = useSchool();
+
   useEffect(() => {
     const setupData = async () => {
       if (!auth.currentUser) {
@@ -13,21 +16,21 @@ export default function FirebaseSetup({ onComplete }: { onComplete?: () => void 
       try {
         // Bootstrap the user directly into the current active school as 'director'
         // so the new rules allow the app logic to continue running smoothly.
-        const schoolId = getCurrentSchoolId();
         const memberRef = doc(db, 'schools', schoolId, 'members', auth.currentUser.uid);
         await setDoc(memberRef, {
           uid: auth.currentUser.uid,
           email: auth.currentUser.email,
-          role: 'director',
+          role: 'director', // Bootstrapping
           displayName: auth.currentUser.phoneNumber || auth.currentUser.email || 'Admin',
           joinedAt: new Date().toISOString()
         }, { merge: true });
+        console.log("Successfully verified/bootstrapped member document for", auth.currentUser.uid);
       } catch (error) {
-        console.warn('Could not bootstrap member document:', error);
+        console.error('Could not bootstrap member document! Error:', error);
       }
 
       try {
-        const chemicalsSnap = await getDocs(getUserCollection('chemicals'));
+        const chemicalsSnap = await getDocs(getUserCollection(schoolId, 'equipment'));
         if (chemicalsSnap.empty) {
           const initialChemicals = [
             { nameEn: 'Hydrochloric Acid', nameAr: 'حمض الهيدروكلوريك', formula: 'HCl', casNumber: '7647-01-0', storageTemp: '15-25°C', expiryDate: '2026-05-12', quantity: 5.2, unit: 'L', hazardClass: 'danger', state: 'liquid', ghs: ['GHS05', 'GHS07'], shelf: 'خزانة A-12', notes: 'تركيز 37%' },
@@ -36,7 +39,7 @@ export default function FirebaseSetup({ onComplete }: { onComplete?: () => void 
             { nameEn: 'Silver Nitrate', nameAr: 'نترات الفضة', formula: 'AgNO3', casNumber: '7761-88-8', storageTemp: 'Dark', expiryDate: '2024-11-02', quantity: 0.5, unit: 'kg', hazardClass: 'danger', state: 'solid', ghs: ['GHS03', 'GHS05', 'GHS09'], shelf: 'خزانة C-02', notes: 'نقاوه 99.8%' },
           ];
           for (const chem of initialChemicals) {
-            await addDoc(getUserCollection('chemicals'), chem);
+            await addDoc(getUserCollection(schoolId, 'equipment'), chem);
           }
         }
       } catch (error) {
@@ -49,7 +52,7 @@ export default function FirebaseSetup({ onComplete }: { onComplete?: () => void 
       }
 
       try {
-        const equipmentSnap = await getDocs(getUserCollection('equipment'));
+        const equipmentSnap = await getDocs(getUserCollection(schoolId, 'equipment'));
         if (equipmentSnap.empty) {
           const initialEquipment = [
             { name: 'كؤوس زجاجية 250ml', type: 'glassware', serialNumber: 'PYREX-B250', status: 'functional', totalQuantity: 120, availableQuantity: 108, brokenQuantity: 12 },
@@ -57,7 +60,7 @@ export default function FirebaseSetup({ onComplete }: { onComplete?: () => void 
             { name: 'دوارق مخروطية 500ml', type: 'glassware', serialNumber: 'ER-FL500', status: 'functional', totalQuantity: 85, availableQuantity: 79, brokenQuantity: 6 },
           ];
           for (const eq of initialEquipment) {
-            await addDoc(getUserCollection('equipment'), eq);
+            await addDoc(getUserCollection(schoolId, 'equipment'), eq);
           }
         }
       } catch (error) {

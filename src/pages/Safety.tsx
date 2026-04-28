@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, addDoc, serverTimestamp, orderBy, limit, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +63,7 @@ const iconMap = {
 };
 
 export default function Safety() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const [safetyItems, setSafetyItems] = useState<SafetyItem[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -90,7 +92,7 @@ export default function Safety() {
 
   useEffect(() => {
     // Fetch Safety Equipment
-    const qEquip = query(getUserCollection('safety_equipment'));
+    const qEquip = query(getUserCollection(schoolId, 'equipment'));
     const unsubEquip = onSnapshot(qEquip, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SafetyItem));
       setSafetyItems(items);
@@ -99,7 +101,7 @@ export default function Safety() {
     });
 
     // Fetch Incidents
-    const qIncidents = query(getUserCollection('incident_logs'), orderBy('date', 'desc'), limit(50));
+    const qIncidents = query(getUserCollection(schoolId, 'safety_incidents'), orderBy('date', 'desc'), limit(50));
     const unsubIncidents = onSnapshot(qIncidents, (snapshot) => {
       const items = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -125,12 +127,12 @@ export default function Safety() {
     e.preventDefault();
     try {
       if (editingEquip) {
-        await updateDoc(doc(getUserCollection('safety_equipment'), editingEquip.id), {
+        await updateDoc(doc(getUserCollection(schoolId, 'equipment'), editingEquip.id), {
           ...newEquip,
           updatedAt: serverTimestamp()
         });
       } else {
-        await addDoc(getUserCollection('safety_equipment'), {
+        await addDoc(getUserCollection(schoolId, 'equipment'), {
           ...newEquip,
           lastCheck: new Date().toISOString().split('T')[0],
           createdAt: serverTimestamp()
@@ -147,7 +149,7 @@ export default function Safety() {
   const handleDeleteEquip = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذه المعدات؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('safety_equipment'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'safety_incidents'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `safety_equipment/${id}`);
     }
@@ -156,7 +158,7 @@ export default function Safety() {
   const handleLogIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(getUserCollection('incident_logs'), {
+      await addDoc(getUserCollection(schoolId, 'equipment'), {
         ...newIncident,
         date: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -170,14 +172,14 @@ export default function Safety() {
 
   const handleRunInvestigation = async (incident: Incident) => {
     try {
-      await updateDoc(doc(getUserCollection('incident_logs'), incident.id), {
+      await updateDoc(doc(getUserCollection(schoolId, 'safety_incidents'), incident.id), {
         status: 'تحت التحقيق',
         updatedAt: serverTimestamp()
       });
       
       const analysis = await analyzeIncident(incident);
       if (analysis) {
-        await updateDoc(doc(getUserCollection('incident_logs'), incident.id), {
+        await updateDoc(doc(getUserCollection(schoolId, 'safety_incidents'), incident.id), {
           analysis,
           status: 'قيد المتابعة',
           updatedAt: serverTimestamp()
@@ -242,7 +244,7 @@ export default function Safety() {
   const handleDeleteIncident = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('incident_logs'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'safety_incidents'), id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `incident_logs/${id}`);
     }
@@ -250,7 +252,7 @@ export default function Safety() {
 
   const handleUpdateIncidentStatus = async (id: string, status: Incident['status']) => {
     try {
-      await updateDoc(doc(getUserCollection('incident_logs'), id), {
+      await updateDoc(doc(getUserCollection(schoolId, 'equipment'), id), {
         status,
         updatedAt: serverTimestamp()
       });

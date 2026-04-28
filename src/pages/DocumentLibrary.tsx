@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { 
   FileText, 
   BookOpen, 
@@ -63,6 +64,7 @@ const QUICK_LINKS = [
 ];
 
 export default function DocumentLibrary() {
+  const { schoolId } = useSchool();
   const navigate = useNavigate();
   const [userDocs, setUserDocs] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function DocumentLibrary() {
   });
 
   useEffect(() => {
-    const q = query(getUserCollection('user_documents'), orderBy('date', 'desc'));
+    const q = query(getUserCollection(schoolId, 'user_documents'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map(d => ({ 
         id: d.id, 
@@ -93,7 +95,7 @@ export default function DocumentLibrary() {
   const handleAddDoc = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(getUserCollection('user_documents'), {
+      await addDoc(getUserCollection(schoolId, 'user_documents'), {
         ...newDoc,
         date: serverTimestamp(),
       });
@@ -107,7 +109,7 @@ export default function DocumentLibrary() {
   const handleDelete = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذه الوثيقة؟')) return;
     try {
-      await deleteDoc(doc(getUserCollection('user_documents'), id));
+      await deleteDoc(doc(getUserCollection(schoolId, 'user_documents'), id));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, 'user_documents');
     }

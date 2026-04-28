@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSchool } from '../context/SchoolContext';
 import { onSnapshot, query, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth, handleFirestoreError, OperationType, getUserCollection } from '../firebase';
@@ -62,6 +63,7 @@ interface AttachmentDoc {
 type Tab = 'list' | 'pv' | 'proposal' | 'attachments';
 
 export default function EquipmentScrapping() {
+  const { schoolId } = useSchool();
   const [activeTab, setActiveTab] = useState<Tab>('list');
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -115,10 +117,10 @@ export default function EquipmentScrapping() {
   }, [attachments]);
 
   useEffect(() => {
-    const unsubEquip = onSnapshot(getUserCollection('equipment'), (snap) => {
+    const unsubEquip = onSnapshot(getUserCollection(schoolId, 'equipment'), (snap) => {
       setEquipmentList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    const unsubTeachers = onSnapshot(getUserCollection('teachers'), (snap) => {
+    const unsubTeachers = onSnapshot(getUserCollection(schoolId, 'equipment'), (snap) => {
       setTeachersList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => { unsubEquip(); unsubTeachers(); };
@@ -185,7 +187,7 @@ export default function EquipmentScrapping() {
       
       await Promise.all(uploadPromises);
 
-      const docRef = await addDoc(getUserCollection('scrapping_records'), {
+      const docRef = await addDoc(getUserCollection(schoolId, 'equipment'), {
         scrapItems,
         pvData,
         proposalData,
@@ -193,7 +195,7 @@ export default function EquipmentScrapping() {
         createdAt: serverTimestamp()
       });
       
-      await logActivity(LogAction.CREATE, LogModule.EQUIPMENT, `سجل إسقاط بملفات مرفقة رقم: ${proposalData.num}`, docRef.id);
+      await logActivity(schoolId, LogAction.CREATE, LogModule.EQUIPMENT, `سجل إسقاط بملفات مرفقة رقم: ${proposalData.num}`, docRef.id);
       setNotification({ message: 'تم حفظ السجل والملفات بنجاح!', type: 'success' });
     } catch (e: any) {
       if (e.message?.includes('storage')) {

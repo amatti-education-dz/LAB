@@ -4,6 +4,7 @@ import { Bell, ShieldAlert, Package, Wrench, X, Check, Activity, FileText } from
 import { cn } from '../lib/utils';
 import { onSnapshot, query, where, collection } from 'firebase/firestore';
 import { db, getUserCollection, auth } from '../firebase';
+import { useSchool } from '../context/SchoolContext';
 import { Link } from 'react-router-dom';
 
 interface Notification {
@@ -18,6 +19,7 @@ interface Notification {
 }
 
 export default function NotificationCenter() {
+  const { schoolId } = useSchool();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -26,7 +28,7 @@ export default function NotificationCenter() {
     if (!auth.currentUser) return;
 
     // Listen to low-stock chemicals
-    const chemQ = query(getUserCollection('chemicals'), where('quantity', '<=', 5));
+    const chemQ = query(getUserCollection(schoolId, 'equipment'), where('quantity', '<=', 5));
     const unsubChem = onSnapshot(chemQ, (snap) => {
       const chemNotifs = snap.docs.map(doc => ({
         id: `chem_${doc.id}`,
@@ -43,7 +45,7 @@ export default function NotificationCenter() {
     });
 
     // Listen to broken equipment
-    const equipQ = query(getUserCollection('equipment'), where('status', 'in', ['broken', 'maintenance']));
+    const equipQ = query(getUserCollection(schoolId, 'equipment'), where('status', 'in', ['broken', 'maintenance']));
     const unsubEquip = onSnapshot(equipQ, (snap) => {
       const equipNotifs = snap.docs.map(doc => ({
         id: `equip_${doc.id}`,
@@ -65,7 +67,7 @@ export default function NotificationCenter() {
     const dateStr = thirtyDaysFromNow.toISOString().split('T')[0];
 
     const expiryQ = query(
-      getUserCollection('chemicals'), 
+      getUserCollection(schoolId, 'equipment'), 
       where('expiryDate', '<=', dateStr),
       where('expiryDate', '!=', '')
     );
@@ -100,7 +102,7 @@ export default function NotificationCenter() {
     const calDateStr = fifteenDaysFromNow.toISOString().split('T')[0];
 
     const calQ = query(
-      getUserCollection('equipment'),
+      getUserCollection(schoolId, 'equipment'),
       where('nextCalibration', '<=', calDateStr),
       where('nextCalibration', '!=', '')
     );

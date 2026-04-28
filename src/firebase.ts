@@ -1,15 +1,19 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, collection, enableIndexedDbPersistence, setLogLevel } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, getFirestore, doc, getDocFromServer, collection, setLogLevel } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase SDK
 const app = initializeApp(firebaseConfig);
-export const db = (firebaseConfig as any).firestoreDatabaseId 
-  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
-  : getFirestore(app);
+const dbSettings: any = {
+  localCache: persistentLocalCache()
+};
+if ((firebaseConfig as any).firestoreDatabaseId) {
+  dbSettings.databaseId = (firebaseConfig as any).firestoreDatabaseId;
+}
+export const db = initializeFirestore(app, dbSettings);
 
 // Initialize Analytics gracefully
 export const analytics = (() => {
@@ -29,17 +33,6 @@ export const analytics = (() => {
 // Suppress Firestore offline warnings which are completely normal for a PWA
 setLogLevel('silent');
 
-// Enable Offline Persistence
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support all of the features required to enable persistence');
-    }
-  });
-}
-
 export const auth = getAuth(app);
 
 // Set persistence to LOCAL to handle mobile redirects better
@@ -51,20 +44,15 @@ if (typeof window !== 'undefined') {
 
 export const storage = getStorage(app);
 
-export const getCurrentSchoolId = () => {
-  return localStorage.getItem('currentSchoolId') || 'school_123';
-};
-
 /**
  * Gets a user-scoped collection reference.
  * Path: schools/{schoolId}/{collectionName}
  */
-export const getUserCollection = (collectionName: string) => {
+export const getUserCollection = (schoolId: string, collectionName: string) => {
   if (!auth.currentUser) {
     console.error("DEBUG: getUserCollection called without auth.currentUser. Collection:", collectionName);
     throw new Error("User must be authenticated to access personal data");
   }
-  const schoolId = getCurrentSchoolId();
   const path = `schools/${schoolId}/${collectionName}`;
   console.log(`DEBUG: Getting collection at path: ${path}`);
   return collection(db, 'schools', schoolId, collectionName);
