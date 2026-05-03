@@ -62,7 +62,6 @@ export default function SettingsPage() {
 
   // Professional Info State
   const [jobTitle, setJobTitle] = useState('ملحق بالمخابر');
-  const [soilType, setSoilType] = useState(''); // Request 7: التربة المختارة
   const [grade, setGrade] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [employeeId, setEmployeeId] = useState('1010101010101010');
@@ -386,7 +385,6 @@ export default function SettingsPage() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setJobTitle(data.jobTitle || 'ملحق بالمخابر');
-          setSoilType(data.soilType || '');
           setGrade(data.grade || '');
           setSpecialty(data.specialty || '');
           setSelectedDirectorate(data.directorate || '');
@@ -463,7 +461,6 @@ export default function SettingsPage() {
       
       await setDoc(doc(db, 'settings', auth.currentUser.uid), {
         jobTitle,
-        soilType,
         grade,
         specialty,
         directorate: selectedDirectorate,
@@ -875,16 +872,6 @@ export default function SettingsPage() {
                         value={specialty}
                         onChange={(e) => setSpecialty(e.target.value)}
                         placeholder="مثال: فيزياء، كيمياء، علوم طبيعية"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-black text-secondary mr-2">التربة المختارة</label>
-                      <input 
-                        className="w-full bg-background border-2 border-transparent rounded-[20px] px-6 py-4 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold" 
-                        type="text" 
-                        value={soilType}
-                        onChange={(e) => setSoilType(e.target.value)}
-                        placeholder="أدخل التربة المختارة هنا"
                       />
                     </div>
                   </div>

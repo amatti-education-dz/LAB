@@ -160,7 +160,15 @@ export default function App() {
               <Route path="/not-found" element={<NotFound />} />
               <Route path="*" element={<Navigate to="/not-found" replace />} />
             </Routes>
-            ) : null}
+            ) : (
+              <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+                <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center animate-bounce">
+                  <div className="w-12 h-12 bg-primary rounded-2xl animate-pulse"></div>
+                </div>
+                <div className="text-xl font-black text-primary animate-pulse">جاري تهيئة النظام...</div>
+                <div className="text-xs text-on-surface/40">قد يستغرق هذا بضع ثوانٍ لأول مرة</div>
+              </div>
+            )}
           </Suspense>
           </Router>
         </SchoolProvider>

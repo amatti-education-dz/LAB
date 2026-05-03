@@ -137,7 +137,10 @@ export default function Dashboard() {
 
     const unsubIncidents = onSnapshot(getUserCollection(schoolId, 'safety_incidents'), (snap) => {
       setCounts(prev => ({ ...prev, incidents: snap.size }));
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'incident_logs'));
+    }, (err) => {
+      console.warn('Dashboard: Failed to load incidents', err);
+      // Don't crash the whole app if incidents fail
+    });
 
     return () => {
       unsubReports();
@@ -206,7 +209,8 @@ export default function Dashboard() {
 
               if (!collectionName) return;
 
-              const docRef = doc(getUserCollection(schoolId, 'tasks'));
+              // Use the correct collection reference based on detected name
+              const docRef = doc(getUserCollection(schoolId, collectionName));
               
               if (collectionName === 'chemicals') {
                 const quantity = Number(item['الكمية'] || 0);
@@ -296,8 +300,13 @@ export default function Dashboard() {
 
     setIsSmartUpdating(true);
     try {
-      const snap = await getDocs(getUserCollection(schoolId, 'tasks'));
-      const items = snap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      const equipSnap = await getDocs(getUserCollection(schoolId, 'equipment'));
+      const chemSnap = await getDocs(getUserCollection(schoolId, 'chemicals'));
+      
+      const items = [
+        ...equipSnap.docs.map((doc: any) => ({ id: doc.id, collection: 'equipment', ...doc.data() })),
+        ...chemSnap.docs.map((doc: any) => ({ id: doc.id, collection: 'chemicals', ...doc.data() }))
+      ];
       
       if (items.length === 0) {
         setNotification({ message: 'لا توجد تجهيزات لتحديثها.', type: 'error' });

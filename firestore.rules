@@ -2,10 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // -------------------------------------------------------------------------
-    // GLOBALS & HELPERS
-    // -------------------------------------------------------------------------
-
     function isSignedIn() { 
       return request.auth != null; 
     }
@@ -14,16 +10,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId; 
     }
     
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    
     function isValidId(id) { 
       return id is string && id.size() <= 128 && id.size() > 0;
     }
 
-    // -------------------------------------------------------------------------
-    // SCHOOL ROLE HELPERS (MULTI-USER)
-    // -------------------------------------------------------------------------
     function getMemberDoc(schoolId) {
       return get(/databases/$(database)/documents/schools/$(schoolId)/members/$(request.auth.uid)).data;
     }
@@ -40,80 +30,34 @@ service cloud.firestore {
     function isLabTech(schoolId) { return hasRole(schoolId, 'labtech'); }
     function isTeacher(schoolId) { return hasRole(schoolId, 'teacher'); }
 
-    // Teachers can read lab schedules etc., but cannot edit inventory or members
     function canEditInventory(schoolId) {
       return isDirector(schoolId) || isLabTech(schoolId);
     }
     
-    // -------------------------------------------------------------------------
-    // ENTITY VALIDATORS (PILLAR 2)
-    // -------------------------------------------------------------------------
-
-    function isValidChemical(data) {
-      return data.keys().hasAll(['nameEn', 'quantity', 'unit']) &&
-             data.nameEn is string && data.nameEn.size() > 0 &&
-             data.quantity is number;
-    }
-
-    function isValidEquipment(data) {
-      return data.keys().hasAll(['name', 'type', 'status']) &&
-             data.name is string &&
-             data.type in ['glassware', 'tech', 'other'] &&
-             data.status in ['functional', 'maintenance', 'broken'];
-    }
-
-    // -------------------------------------------------------------------------
-    // SETTINGS / CONFIG
-    // -------------------------------------------------------------------------
     match /settings/{userId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId) && isValidId(userId);
     }
 
-    // -------------------------------------------------------------------------
-    // NEW MULTI-USER SCHOOL SANDBOXES
-    // -------------------------------------------------------------------------
     match /schools/{schoolId} {
-      // Base school doc access
       allow get: if isSchoolMember(schoolId);
       
-      // School Members collection
       match /members/{userId} {
-        // Anyone in the school can list members, and a user can always read their own member doc
         allow get, list: if isOwner(userId) || isSchoolMember(schoolId);
-        
-        // Members creation: directors can add anyone. Users can add themselves (for demo bootstrap).
-        allow create: if isValidId(userId) && (
-          isOwner(userId) || isDirector(schoolId)
-        );
-        
-        // Members update: users can't upgrade their own role.
-        allow update: if isValidId(userId) && (
-          isOwner(userId) || isDirector(schoolId) 
-        );
-        
-        // Members delete: only directors
+        allow create: if isValidId(userId) && (isOwner(userId) || isDirector(schoolId));
+        allow update: if isValidId(userId) && (isOwner(userId) || isDirector(schoolId));
         allow delete: if isDirector(schoolId) && isValidId(userId);
       }
       
-      // School collections
       match /{collection}/{docId} {
-        // Members can read anything in their school sandbox
         allow get, list: if isSchoolMember(schoolId);
-        
-        // Writes are role-gated
-        // - Directors and LabTechs can write to any collection
-        // - Teachers can only write to non-inventory collections (like lab schedules)
         allow create, update: if isSchoolMember(schoolId) && isValidId(docId) && (
           canEditInventory(schoolId) || 
           (isTeacher(schoolId) && collection != 'chemicals' && collection != 'equipment' && collection != 'inventory_cards_registry' && collection != 'settings')
         );
-        
-        // Deletions allowed by directors and labtechs. Teachers cannot delete.
         allow delete: if isSchoolMember(schoolId) && isValidId(docId) && canEditInventory(schoolId);
       }
       
-      // Deeper subcollections
       match /{collection}/{docId}/{subCollection}/{subId} {
         allow get, list: if isSchoolMember(schoolId);
         allow create, update: if isSchoolMember(schoolId) && isValidId(subId) && (
@@ -124,9 +68,6 @@ service cloud.firestore {
       }
     }
 
-    // -------------------------------------------------------------------------
-    // LEGACY USER SANDBOXES (to prevent breaking any unmigrated parts)
-    // -------------------------------------------------------------------------
     match /users/{userId} {
       allow list: if isOwner(userId);
       allow get, write: if isOwner(userId) && isValidId(userId);
@@ -142,12 +83,10 @@ service cloud.firestore {
       }
     }
 
-    // Connection test path
     match /_connection_test_/{docId} {
       allow read, write: if isSignedIn();
     }
 
-    // Default Deny (PILLAR 0)
     match /{document=**} {
       allow read, write: if false;
     }
